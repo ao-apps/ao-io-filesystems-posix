@@ -22,7 +22,11 @@
  */
 package com.aoindustries.io.filesystems.unix;
 
+import com.aoindustries.io.filesystems.InvalidPathException;
+import com.aoindustries.io.filesystems.Path;
 import com.aoindustries.io.filesystems.ReadOnlyFileSystem;
+import com.aoindustries.io.unix.Stat;
+import java.io.IOException;
 
 /**
  * Wraps a Unix file system to make it read-only.
@@ -36,5 +40,13 @@ public class ReadOnlyUnixFileSystem extends ReadOnlyFileSystem implements UnixFi
 	public ReadOnlyUnixFileSystem(UnixFileSystem wrapped) {
 		super(wrapped);
 		this.wrapped = wrapped;
+	}
+
+	/**
+	 * Defers to the wrapped file system.
+	 */
+	@Override
+	public Stat stat(Path path) throws InvalidPathException, IOException {
+		return wrapped.stat(path);
 	}
 }

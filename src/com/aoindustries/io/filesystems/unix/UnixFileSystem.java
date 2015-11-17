@@ -23,7 +23,12 @@
 package com.aoindustries.io.filesystems.unix;
 
 import com.aoindustries.io.filesystems.FileSystem;
+import com.aoindustries.io.filesystems.InvalidPathException;
+import com.aoindustries.io.filesystems.Path;
+import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 
 /**
  * The most basic layer of what Unix file systems have in common.
@@ -37,4 +42,6 @@ import com.aoindustries.io.unix.UnixFile;
  * @author  AO Industries, Inc.
  */
 public interface UnixFileSystem extends FileSystem {
+
+	Stat stat(Path path) throws InvalidPathException, IOException;
 }

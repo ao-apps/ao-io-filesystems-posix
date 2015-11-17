@@ -25,8 +25,10 @@ package com.aoindustries.io.filesystems.unix;
 import com.aoindustries.io.filesystems.InvalidPathException;
 import com.aoindustries.io.filesystems.JavaFileSystem;
 import com.aoindustries.io.filesystems.Path;
+import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.NullArgumentException;
+import java.io.IOException;
 
 /**
  * The Unix file system implement by the UnixFile.
@@ -75,5 +77,19 @@ public class DefaultUnixFileSystem extends JavaFileSystem implements UnixFileSys
 			checking = checking.getParent();
 		} while(checking != null);
 		return path;
+	}
+
+	/**
+	 * Gets a UnixFile for the given path.
+	 * 
+	 * @see #getFile(com.aoindustries.io.filesystems.Path) 
+	 */
+	private UnixFile getUnixFile(Path path) throws InvalidPathException, IOException {
+		return new UnixFile(getFile(path));
+	}
+
+	@Override
+	public Stat stat(Path path) throws InvalidPathException, IOException {
+		return getUnixFile(path).getStat();
 	}
 }
