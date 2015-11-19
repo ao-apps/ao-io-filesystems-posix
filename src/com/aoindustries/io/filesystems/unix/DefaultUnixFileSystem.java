@@ -48,6 +48,7 @@ public class DefaultUnixFileSystem extends JavaFileSystem implements UnixFileSys
 	}
 
 	protected DefaultUnixFileSystem() {
+		if(!isSingleRoot) throw new AssertionError("Default Unix filesystem must always be single root");
 	}
 
 	/**
