@@ -51,37 +51,11 @@ public class DefaultUnixFileSystem extends JavaFileSystem implements UnixFileSys
 	}
 
 	/**
-	 * Unix filename restrictions are:
-	 * <ol>
-	 * <li>Must not be longer than <code>MAX_PATH_NAME_LENGTH</code> characters</li>
-	 * <li>Must not contain the NULL character</li>
-	 * <li>Must not contain the '/' character</li>
-	 * <li>Must not be "."</li>
-	 * <li>Must not be ".."</li>
-	 * </ol>
+	 * @see  UnixFileSystem#checkSubPath(com.aoindustries.io.filesystems.Path, java.lang.String)
 	 */
 	@Override
 	public void checkSubPath(Path parent, String name) throws InvalidPathException {
-		if(parent.getFileSystem() != this) throw new IllegalArgumentException();
-		int nameLen = name.length();
-		// Must not be longer than <code>MAX_PATH_NAME_LENGTH</code> characters
-		if(nameLen > MAX_PATH_NAME_LENGTH) {
-			throw new InvalidPathException("Path name must not be longer than " + MAX_PATH_NAME_LENGTH + " characters: " + name);
-		}
-		// Must not contain the NULL character
-		if(name.indexOf(0) != -1) {
-			throw new InvalidPathException("Path name must not contain the NULL character: " + name);
-		}
-		// Must not contain the '/' character
-		assert Path.SEPARATOR == '/';
-		// Must not be "."
-		if(".".equals(name)) {
-			throw new InvalidPathException("Path name must not be \".\": " + name);
-		}
-		// Must not be ".."
-		if("..".equals(name)) {
-			throw new InvalidPathException("Path name must not be \"..\": " + name);
-		}
+		UnixFileSystem.super.checkSubPath(parent, name);
 	}
 
 	/**

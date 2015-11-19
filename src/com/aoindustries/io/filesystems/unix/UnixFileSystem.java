@@ -23,6 +23,8 @@
 package com.aoindustries.io.filesystems.unix;
 
 import com.aoindustries.io.filesystems.FileSystem;
+import com.aoindustries.io.filesystems.InvalidPathException;
+import static com.aoindustries.io.filesystems.JavaFileSystem.MAX_PATH_NAME_LENGTH;
 import com.aoindustries.io.filesystems.Path;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
@@ -40,6 +42,40 @@ import java.io.IOException;
  * @author  AO Industries, Inc.
  */
 public interface UnixFileSystem extends FileSystem {
+
+	/**
+	 * Unix filename restrictions are:
+	 * <ol>
+	 * <li>Must not be longer than <code>MAX_PATH_NAME_LENGTH</code> characters</li>
+	 * <li>Must not contain the NULL character</li>
+	 * <li>Must not contain the '/' character</li>
+	 * <li>Must not be "."</li>
+	 * <li>Must not be ".."</li>
+	 * </ol>
+	 */
+	@Override
+	default void checkSubPath(Path parent, String name) throws InvalidPathException {
+		if(parent.getFileSystem() != this) throw new IllegalArgumentException();
+		int nameLen = name.length();
+		// Must not be longer than <code>MAX_PATH_NAME_LENGTH</code> characters
+		if(nameLen > MAX_PATH_NAME_LENGTH) {
+			throw new InvalidPathException("Path name must not be longer than " + MAX_PATH_NAME_LENGTH + " characters: " + name);
+		}
+		// Must not contain the NULL character
+		if(name.indexOf(0) != -1) {
+			throw new InvalidPathException("Path name must not contain the NULL character: " + name);
+		}
+		// Must not contain the '/' character
+		assert Path.SEPARATOR == '/';
+		// Must not be "."
+		if(".".equals(name)) {
+			throw new InvalidPathException("Path name must not be \".\": " + name);
+		}
+		// Must not be ".."
+		if("..".equals(name)) {
+			throw new InvalidPathException("Path name must not be \"..\": " + name);
+		}
+	}
 
 	/**
 	 * @path  Must be from this file system.

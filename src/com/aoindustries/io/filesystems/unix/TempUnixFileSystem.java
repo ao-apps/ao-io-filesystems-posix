@@ -22,6 +22,7 @@
  */
 package com.aoindustries.io.filesystems.unix;
 
+import com.aoindustries.io.filesystems.InvalidPathException;
 import com.aoindustries.io.filesystems.Path;
 import com.aoindustries.io.filesystems.TempFileSystem;
 import com.aoindustries.io.unix.Stat;
@@ -34,6 +35,14 @@ import java.io.IOException;
  * @author  AO Industries, Inc.
  */
 public class TempUnixFileSystem extends TempFileSystem implements UnixFileSystem {
+
+	/**
+	 * @see  UnixFileSystem#checkSubPath(com.aoindustries.io.filesystems.Path, java.lang.String)
+	 */
+	@Override
+	public void checkSubPath(Path parent, String name) throws InvalidPathException {
+		UnixFileSystem.super.checkSubPath(parent, name);
+	}
 
 	@Override
 	public Stat stat(Path path) throws IOException {

@@ -53,6 +53,7 @@ public class RandomFailUnixFileSystem extends RandomFailFileSystem implements Un
 		float listIterateCloseFailureProbability,
 		float statFailureProbability,
 		float unlinkFailureProbability,
+		float sizeFailureProbability,
 		Random random
 	) {
 		super(
@@ -61,6 +62,7 @@ public class RandomFailUnixFileSystem extends RandomFailFileSystem implements Un
 			listIterateFailureProbability,
 			listIterateCloseFailureProbability,
 			unlinkFailureProbability,
+			sizeFailureProbability,
 			random
 		);
 		this.wrapped = wrapped;

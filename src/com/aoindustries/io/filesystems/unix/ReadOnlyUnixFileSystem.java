@@ -22,7 +22,6 @@
  */
 package com.aoindustries.io.filesystems.unix;
 
-import com.aoindustries.io.filesystems.InvalidPathException;
 import com.aoindustries.io.filesystems.Path;
 import com.aoindustries.io.filesystems.ReadOnlyFileSystem;
 import com.aoindustries.io.unix.Stat;
@@ -43,10 +42,11 @@ public class ReadOnlyUnixFileSystem extends ReadOnlyFileSystem implements UnixFi
 	}
 
 	/**
-	 * Defers to the wrapped file system.
+	 * Delegates to the wrapped file system.
 	 */
 	@Override
-	public Stat stat(Path path) throws InvalidPathException, IOException {
+	public Stat stat(Path path) throws IOException {
+		if(path.getFileSystem() != this) throw new IllegalArgumentException();
 		return wrapped.stat(path);
 	}
 }
