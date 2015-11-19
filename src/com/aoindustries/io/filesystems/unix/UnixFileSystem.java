@@ -23,11 +23,9 @@
 package com.aoindustries.io.filesystems.unix;
 
 import com.aoindustries.io.filesystems.FileSystem;
-import com.aoindustries.io.filesystems.InvalidPathException;
 import com.aoindustries.io.filesystems.Path;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 
 /**
@@ -43,5 +41,8 @@ import java.io.IOException;
  */
 public interface UnixFileSystem extends FileSystem {
 
-	Stat stat(Path path) throws InvalidPathException, IOException;
+	/**
+	 * @path  Must be from this file system.
+	 */
+	Stat stat(Path path) throws IOException;
 }

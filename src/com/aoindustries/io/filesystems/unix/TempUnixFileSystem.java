@@ -22,7 +22,11 @@
  */
 package com.aoindustries.io.filesystems.unix;
 
+import com.aoindustries.io.filesystems.Path;
 import com.aoindustries.io.filesystems.TempFileSystem;
+import com.aoindustries.io.unix.Stat;
+import com.aoindustries.lang.NotImplementedException;
+import java.io.IOException;
 
 /**
  * A temporary Unix file system stored in the Java heap.
@@ -31,4 +35,9 @@ import com.aoindustries.io.filesystems.TempFileSystem;
  */
 public class TempUnixFileSystem extends TempFileSystem implements UnixFileSystem {
 
+	@Override
+	public Stat stat(Path path) throws IOException {
+		if(path.getFileSystem() != this) throw new IllegalArgumentException();
+		throw new NotImplementedException("TODO");
+	}
 }

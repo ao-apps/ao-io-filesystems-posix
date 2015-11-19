@@ -22,7 +22,11 @@
  */
 package com.aoindustries.io.filesystems.unix;
 
+import com.aoindustries.io.filesystems.Path;
 import com.aoindustries.io.filesystems.RandomFailFileSystem;
+import com.aoindustries.io.unix.Stat;
+import java.io.IOException;
+import java.util.Random;
 
 /**
  * A Unix file system implementation that randomly fails, this is used by test
@@ -32,10 +36,53 @@ import com.aoindustries.io.filesystems.RandomFailFileSystem;
  */
 public class RandomFailUnixFileSystem extends RandomFailFileSystem implements UnixFileSystem {
 
-	private final UnixFileSystem wrapped;
+	/**
+	 * Default probabilities
+	 */
+	public static final float
+		DEFAULT_STAT_FAILURE_PROBABILITY = 0.00001f
+	;
 
+	private final UnixFileSystem wrapped;
+	private final float statFailureProbability;
+
+	public RandomFailUnixFileSystem(
+		UnixFileSystem wrapped,
+		float listFailureProbability,
+		float listIterateFailureProbability,
+		float listIterateCloseFailureProbability,
+		float statFailureProbability,
+		float unlinkFailureProbability,
+		Random random
+	) {
+		super(
+			wrapped,
+			listFailureProbability,
+			listIterateFailureProbability,
+			listIterateCloseFailureProbability,
+			unlinkFailureProbability,
+			random
+		);
+		this.wrapped = wrapped;
+		this.statFailureProbability = statFailureProbability;
+	}
+
+	/**
+	 * @see RandomFailFileSystem#RandomFailFileSystem(com.aoindustries.io.filesystems.FileSystem)
+	 */
 	public RandomFailUnixFileSystem(UnixFileSystem wrapped) {
 		super(wrapped);
 		this.wrapped = wrapped;
+		this.statFailureProbability = DEFAULT_STAT_FAILURE_PROBABILITY;
+	}
+
+	/**
+	 * Delegates to the wrapped file system, but with a random chance of fail.
+	 */
+	@Override
+	public Stat stat(Path path) throws RandomFailIOException, IOException {
+		if(path.getFileSystem() != this) throw new IllegalArgumentException();
+		randomFail(statFailureProbability);
+		return wrapped.stat(unwrapPath(path));
 	}
 }

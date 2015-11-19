@@ -27,7 +27,6 @@ import com.aoindustries.io.filesystems.JavaFileSystem;
 import com.aoindustries.io.filesystems.Path;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.NullArgumentException;
 import java.io.IOException;
 
 /**
@@ -38,6 +37,18 @@ import java.io.IOException;
  * @author  AO Industries, Inc.
  */
 public class DefaultUnixFileSystem extends JavaFileSystem implements UnixFileSystem {
+
+	private static final DefaultUnixFileSystem instance = new DefaultUnixFileSystem();
+
+	/**
+	 * Only one instance is created.
+	 */
+	public static DefaultUnixFileSystem getInstance() {
+		return instance;
+	}
+
+	protected DefaultUnixFileSystem() {
+	}
 
 	/**
 	 * Unix filename restrictions are:
@@ -50,33 +61,27 @@ public class DefaultUnixFileSystem extends JavaFileSystem implements UnixFileSys
 	 * </ol>
 	 */
 	@Override
-	public Path checkPath(Path path) throws InvalidPathException {
-		NullArgumentException.checkNotNull(path, "path");
-		Path checking = path;
-		do {
-			String name = checking.getName();
-			int nameLen = name.length();
-			// Must not be longer than <code>MAX_PATH_NAME_LENGTH</code> characters
-			if(nameLen > MAX_PATH_NAME_LENGTH) {
-				throw new InvalidPathException("Path name must not be longer than " + MAX_PATH_NAME_LENGTH + " characters: " + name);
-			}
-			// Must not contain the NULL character
-			if(name.indexOf(0) != -1) {
-				throw new InvalidPathException("Path name must not contain the NULL character: " + name);
-			}
-			// Must not contain the '/' character
-			assert Path.SEPARATOR == '/';
-			// Must not be "."
-			if(".".equals(name)) {
-				throw new InvalidPathException("Path name must not be \".\": " + name);
-			}
-			// Must not be ".."
-			if("..".equals(name)) {
-				throw new InvalidPathException("Path name must not be \"..\": " + name);
-			}
-			checking = checking.getParent();
-		} while(checking != null);
-		return path;
+	public void checkSubPath(Path parent, String name) throws InvalidPathException {
+		if(parent.getFileSystem() != this) throw new IllegalArgumentException();
+		int nameLen = name.length();
+		// Must not be longer than <code>MAX_PATH_NAME_LENGTH</code> characters
+		if(nameLen > MAX_PATH_NAME_LENGTH) {
+			throw new InvalidPathException("Path name must not be longer than " + MAX_PATH_NAME_LENGTH + " characters: " + name);
+		}
+		// Must not contain the NULL character
+		if(name.indexOf(0) != -1) {
+			throw new InvalidPathException("Path name must not contain the NULL character: " + name);
+		}
+		// Must not contain the '/' character
+		assert Path.SEPARATOR == '/';
+		// Must not be "."
+		if(".".equals(name)) {
+			throw new InvalidPathException("Path name must not be \".\": " + name);
+		}
+		// Must not be ".."
+		if("..".equals(name)) {
+			throw new InvalidPathException("Path name must not be \"..\": " + name);
+		}
 	}
 
 	/**
@@ -84,12 +89,14 @@ public class DefaultUnixFileSystem extends JavaFileSystem implements UnixFileSys
 	 * 
 	 * @see #getFile(com.aoindustries.io.filesystems.Path) 
 	 */
-	private UnixFile getUnixFile(Path path) throws InvalidPathException, IOException {
+	private UnixFile getUnixFile(Path path) throws IOException {
+		assert path.getFileSystem() == this;
 		return new UnixFile(getFile(path));
 	}
 
 	@Override
-	public Stat stat(Path path) throws InvalidPathException, IOException {
+	public Stat stat(Path path) throws IOException {
+		if(path.getFileSystem() != this) throw new IllegalArgumentException();
 		return getUnixFile(path).getStat();
 	}
 }
