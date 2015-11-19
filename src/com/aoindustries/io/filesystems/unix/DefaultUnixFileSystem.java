@@ -66,7 +66,7 @@ public class DefaultUnixFileSystem extends JavaFileSystem implements UnixFileSys
 	 */
 	private UnixFile getUnixFile(Path path) throws IOException {
 		assert path.getFileSystem() == this;
-		return new UnixFile(getFile(path));
+		return new UnixFile(getJavaPath(path).toFile());
 	}
 
 	@Override
