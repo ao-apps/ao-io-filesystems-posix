@@ -11,10 +11,17 @@ import com.aoindustries.cron.CronJobScheduleMode;
 import com.aoindustries.cron.Schedule;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.md5.MD5;
 import com.aoindustries.util.StringUtility;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.file.FileSystemException;
+import java.nio.file.Files;
+import java.nio.file.NotDirectoryException;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -154,7 +161,14 @@ import java.util.logging.Logger;
  * </p>
  * <p>
  * Locks are maintained on a per-hash-directory basis, so the I/O can be
- * dispatched with up to 2^16 concurrency.
+ * dispatched with up to 2^16 concurrency.  Locks are done within the JVM
+ * using synchronized blocks, as well as between processes using file locking.
+ * It is safe for multiple processes to use the same directory index concurrently.
+ * All locks are exclusive for simplicity as concurrency is still obtained by the
+ * sheer number of locks.
+ * </p>
+ * <p>
+ * TODO: Keep track of number of in-JVM locks, only release file lock when all JVM locks released.
  * </p>
  *
  * @see  AOServDaemonProtocol#FAILOVER_FILE_REPLICATION_CHUNK_SIZE
@@ -263,42 +277,145 @@ public class DedupDataIndex {
 
 	private final UnixFile canonicalDirectory;
 
+	// <editor-fold defaultstate="collapsed" desc="Hash directory locking">
+	/**
+	 * Obtains a file lock when created.
+	 */
+	private class HashDirectoryLock {
+
+		private final String lockDirName;
+		private final Path lockPath;
+
+		private HashDirectoryLock(int hashDir) throws IOException {
+			//this.hashDir = hashDir;
+			StringBuilder name = new StringBuilder(DIRECTORY_HASH_CHARACTERS);
+			int shift = HEX_BITS * DIRECTORY_HASH_CHARACTERS;
+			do {
+				shift -= HEX_BITS;
+				name.append(StringUtility.getHexChar(hashDir >>> shift));
+			} while(shift > 0);
+			this.lockDirName = name.toString();
+			UnixFile lockUF = new UnixFile(canonicalDirectory, lockDirName, false);
+			File lockFile = lockUF.getFile();
+			Stat stat = lockUF.getStat();
+			if(!stat.exists()) {
+				new FileOutputStream(lockFile).close();
+				lockUF.setMode(FILE_MODE);
+			} else if(!stat.isRegularFile()) {
+				throw new FileSystemException("Not a regular file: " + lockUF.toString());
+			}
+			lockPath = lockFile.toPath();
+		}
+
+		@Override
+		public String toString() {
+			return
+				DedupDataIndex.class.getName()
+				+ '('
+				+ canonicalDirectory
+				+ ").hashLock("
+				+ lockDirName
+				+ ')'
+			;
+		}
+
+		/**
+		 * The channel for the currently held lock.
+		 */
+		private FileChannel channel;
+
+		/**
+		 * The currently opened lock.
+		 */
+		private FileLock lock;
+
+		/**
+		 * The thread currently holding the lock.
+		 */
+		private Thread thread;
+
+		/**
+		 * Gets an exclusive lock on this hash directory.  The lock must be
+		 * released when done manipulating the directory.
+		 * Must be used in a try/finally block.
+		 * The locks are not reentrant.
+		 * The obtained lock must not be given to another thread.
+		 *
+		 * @see  #unlock()
+		 */
+		private void lock() throws IOException {
+			Thread currentThread = Thread.currentThread();
+			synchronized(this) {
+				// Avoid obvious deadlock scenario, these locks are not reentrant
+				if(currentThread == thread) {
+					throw new IllegalStateException("Thread already has the lock, locks are not reentrant: " + lockDirName);
+				}
+				// Wait for existing lock to be unlocked
+				while(lock != null && lock.isValid()) {
+					try {
+						this.wait();
+					} catch(InterruptedException e) {
+						// Interruption is OK
+					}
+				}
+				// Close old channel here, just to be extra safe
+				if(channel != null) {
+					channel.close();
+					channel = null;
+				}
+				// Obtain lock
+				channel = FileChannel.open(lockPath, StandardOpenOption.READ);
+				lock = channel.lock();
+				thread = currentThread;
+			}
+		}
+
+		/**
+		 * Unlocks this directory.  Must be called in a try/finally block.
+		 * 
+		 * @see  #lock()
+		 */
+		private void unlock() throws IOException {
+			Thread currentThread = Thread.currentThread();
+			synchronized(this) {
+				if(thread != null) {
+					if(thread != currentThread) {
+						throw new IllegalStateException("Lock was not obtained by this thread: " + lockDirName);
+					}
+					thread = null;
+				}
+				if(lock != null) {
+					this.notify();
+					lock.close();
+					lock = null;
+				}
+				if(channel != null) {
+					channel.close();
+					channel = null;
+				}
+			}
+		}
+	}
+
 	/**
 	 * Per hash locks (one for each hash sub directory).
 	 */
-	private final Map<Integer,Object> hashLocks = new HashMap<>();
+	private final HashDirectoryLock[] hashLocks = new HashDirectoryLock[2 ^ DIRECTORY_HASH_BITS];
 
 	/**
 	 * Gets the lock for a specific hash directory, never removed once created.
 	 */
-	private Object getHashLock(Integer hashDir) {
-		final int MAX_DIRECTORY_HASH = (2 ^ DIRECTORY_HASH_BITS) - 1;
-		if(hashDir < 0 || hashDir > MAX_DIRECTORY_HASH) throw new IllegalArgumentException("hashDir out of range (0 - " + MAX_DIRECTORY_HASH + "): " + hashDir);
+	private HashDirectoryLock getHashLock(int hashDir) throws IOException {
 		synchronized(hashLocks) {
-			Object hashLock = hashLocks.get(hashDir);
+			HashDirectoryLock hashLock = hashLocks[hashDir];
 			if(hashLock == null) {
-				hashLock = new Object() {
-					@Override
-					public String toString() {
-						StringBuilder sb = new StringBuilder();
-						sb.append(DedupDataIndex.class.getName());
-						sb.append('(');
-						sb.append(canonicalDirectory);
-						sb.append(").hashLock(");
-						int shift = HEX_BITS * DIRECTORY_HASH_CHARACTERS;
-						do {
-							shift -= HEX_BITS;
-							sb.append(StringUtility.getHexChar(hashDir >>> shift));
-						} while(shift > 0);
-						sb.append(')');
-						return sb.toString();
-					}
-				};
-				hashLocks.put(hashDir, hashLock);
+				hashLock = new HashDirectoryLock(hashDir);
+				hashLocks[hashDir] = hashLock;
 			}
 			return hashLock;
 		}
 	}
+	// </editor-fold>
 
 	private DedupDataIndex(File canonicalDirectory) throws IOException {
 		this.canonicalDirectory = new UnixFile(canonicalDirectory);
@@ -381,18 +498,22 @@ public class DedupDataIndex {
 		if(hashDirs != null) {
 			for(String hashDir : hashDirs) {
 				try {
-					final Object hashDirLock = getHashLock(parseHashDir(hashDir));
+					final HashDirectoryLock hashDirLock = getHashLock(parseHashDir(hashDir));
 					final UnixFile hashDirUF = new UnixFile(canonicalDirectory, hashDir, false);
 					String[] list;
-					synchronized(hashDirLock) {
+					hashDirLock.lock();
+					try {
 						list = hashDirUF.list();
+					} finally {
+						hashDirLock.unlock();
 					}
 					if(list != null) {
 						boolean hasKeptFile = false;
 						final Stat stat = new Stat();
 						for(String filename : list) {
 							UnixFile uf = new UnixFile(hashDirUF, filename, false);
-							synchronized(hashDirLock) {
+							hashDirLock.lock();
+							try {
 								uf.getStat(stat);
 								// Must still exist
 								if(stat.exists()) {
@@ -409,6 +530,8 @@ public class DedupDataIndex {
 										hasKeptFile = true;
 									}
 								}
+							} finally {
+								hashDirLock.unlock();
 							}
 							// We'll play extra nice by letting others grab the lock before
 							// going on to the next file.
@@ -419,7 +542,8 @@ public class DedupDataIndex {
 						// Remove the hash directory itself if now empty
 						if(!hasKeptFile) {
 							boolean logSkippedNonDirectory = false;
-							synchronized(hashDirLock) {
+							hashDirLock.lock();
+							try {
 								hashDirUF.getStat(stat);
 								if(stat.exists()) {
 									if(stat.isDirectory()) {
@@ -432,6 +556,8 @@ public class DedupDataIndex {
 										logSkippedNonDirectory = true;
 									}
 								}
+							} finally {
+								hashDirLock.unlock();
 							}
 							if(logSkippedNonDirectory) {
 								logger.log(Level.WARNING, "Skipping non-directory: " + hashDir);
