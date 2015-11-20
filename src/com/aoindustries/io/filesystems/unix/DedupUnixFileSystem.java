@@ -22,36 +22,47 @@
  */
 package com.aoindustries.io.filesystems.unix;
 
-import com.aoindustries.io.filesystems.InvalidPathException;
+import com.aoindustries.io.filesystems.FileSystemWrapper;
 import com.aoindustries.io.filesystems.Path;
-import com.aoindustries.io.filesystems.TempFileSystem;
 import com.aoindustries.io.unix.Stat;
-import com.aoindustries.lang.NotImplementedException;
+import java.io.IOException;
 
 /**
- * A temporary Unix file system stored in the Java heap.
+ * De-duplicates data chunks on the fly.
+ *
+ * <pre>
+ * real name (empty file, small file, or possible full/partially restored large file)
+ * &lt;A&lt;O&lt;DEDUP&gt;O&gt;A&gt;_# -> symbolic linked to real name
+ * &lt;A&lt;O&lt;DEDUP&gt;O&gt;A&gt;_#_chunk#_md5_size[.gz] -> hard linked to index
+ * </pre>
+ * <p>
+ * Renaming a file requires to rename both the file and the one symbolic link to the file.
+ * </p>
+ * <p>
+ * Files smaller than TODO bytes in length will not be deduped.  This is because
+ * the overhead of deduping is:
+ * </p>
+ * <ol>
+ *   <li>TODO</li>
+ * </ol>
  *
  * @author  AO Industries, Inc.
  */
-public class TempUnixFileSystem extends TempFileSystem implements UnixFileSystem {
+public class DedupUnixFileSystem extends FileSystemWrapper implements UnixFileSystem {
+
+	private final UnixFileSystem wrapped;
+
+	public DedupUnixFileSystem(UnixFileSystem wrapped) {
+		super(wrapped);
+		this.wrapped = wrapped;
+	}
 
 	/**
-	 * @see  UnixFileSystem#checkSubPath(com.aoindustries.io.filesystems.Path, java.lang.String)
+	 * Delegates to the wrapped file system.
 	 */
 	@Override
-	public void checkSubPath(Path parent, String name) throws InvalidPathException {
-		UnixFileSystem.super.checkSubPath(parent, name);
-	}
-
-	@Override
-	public Stat stat(Path path) {
+	public Stat stat(Path path) throws IOException {
 		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		throw new NotImplementedException("TODO");
-	}
-
-	@Override
-	public Path createDirectory(Path path, int mode) {
-		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		throw new NotImplementedException("TODO");
+		return wrapped.stat(path);
 	}
 }

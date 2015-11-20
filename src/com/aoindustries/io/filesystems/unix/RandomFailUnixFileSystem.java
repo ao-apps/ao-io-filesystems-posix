@@ -36,46 +36,43 @@ import java.util.Random;
  */
 public class RandomFailUnixFileSystem extends RandomFailFileSystem implements UnixFileSystem {
 
-	/**
-	 * Default probabilities
-	 */
-	public static final float
-		DEFAULT_STAT_FAILURE_PROBABILITY = 0.00001f
-	;
+	public static interface UnixFailureProbabilities extends FailureProbabilities {
+		default float getStat() {
+			return 0.00001f;
+		}
+		default float getCreateDirectoryMode() {
+			return getCreateDirectory();
+		}
+	}
 
 	private final UnixFileSystem wrapped;
-	private final float statFailureProbability;
+	private final UnixFailureProbabilities unixFailureProbabilities;
 
 	public RandomFailUnixFileSystem(
 		UnixFileSystem wrapped,
-		float listFailureProbability,
-		float listIterateFailureProbability,
-		float listIterateCloseFailureProbability,
-		float statFailureProbability,
-		float unlinkFailureProbability,
-		float sizeFailureProbability,
+		UnixFailureProbabilities unixFailureProbabilities,
 		Random random
 	) {
 		super(
 			wrapped,
-			listFailureProbability,
-			listIterateFailureProbability,
-			listIterateCloseFailureProbability,
-			unlinkFailureProbability,
-			sizeFailureProbability,
+			unixFailureProbabilities,
 			random
 		);
 		this.wrapped = wrapped;
-		this.statFailureProbability = statFailureProbability;
+		this.unixFailureProbabilities = unixFailureProbabilities;
 	}
 
 	/**
-	 * @see RandomFailFileSystem#RandomFailFileSystem(com.aoindustries.io.filesystems.FileSystem)
+	 * Uses default probabilities and a SecureRandom source.
+	 * 
+	 * @see SecureRandom
 	 */
 	public RandomFailUnixFileSystem(UnixFileSystem wrapped) {
-		super(wrapped);
-		this.wrapped = wrapped;
-		this.statFailureProbability = DEFAULT_STAT_FAILURE_PROBABILITY;
+		this(
+			wrappedFileSystem,
+			new UnixFailureProbabilities() {},
+			new SecureRandom()
+		);
 	}
 
 	/**
@@ -84,7 +81,15 @@ public class RandomFailUnixFileSystem extends RandomFailFileSystem implements Un
 	@Override
 	public Stat stat(Path path) throws RandomFailIOException, IOException {
 		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		randomFail(statFailureProbability);
+		randomFail(unixFailureProbabilities.getStat());
 		return wrapped.stat(unwrapPath(path));
+	}
+
+	@Override
+	public Path createDirectory(Path path, int mode) throws IOException {
+		if(path.getFileSystem() != this) throw new IllegalArgumentException();
+		randomFail(unixFailureProbabilities.getCreateDirectoryMode());
+		wrapped.createDirectory(unwrapPath(path), mode);
+		return path;
 	}
 }

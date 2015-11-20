@@ -74,4 +74,15 @@ public class DefaultUnixFileSystem extends JavaFileSystem implements UnixFileSys
 		if(path.getFileSystem() != this) throw new IllegalArgumentException();
 		return getUnixFile(path).getStat();
 	}
+
+	/**
+	 * TODO: This is not an atomic implementation.  Use the Java-provided interface,
+	 * but beware it does not seem to have support for the sticky bits.
+	 */
+	@Override
+	public Path createDirectory(Path path, int mode) throws IOException {
+		if(path.getFileSystem() != this) throw new IllegalArgumentException();
+		getUnixFile(path).mkdir(false, mode);
+		return path;
+	}
 }

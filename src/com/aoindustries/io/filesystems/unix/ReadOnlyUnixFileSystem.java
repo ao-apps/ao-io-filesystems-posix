@@ -26,6 +26,7 @@ import com.aoindustries.io.filesystems.Path;
 import com.aoindustries.io.filesystems.ReadOnlyFileSystem;
 import com.aoindustries.io.unix.Stat;
 import java.io.IOException;
+import java.nio.file.ReadOnlyFileSystemException;
 
 /**
  * Wraps a Unix file system to make it read-only.
@@ -47,6 +48,12 @@ public class ReadOnlyUnixFileSystem extends ReadOnlyFileSystem implements UnixFi
 	@Override
 	public Stat stat(Path path) throws IOException {
 		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		return wrapped.stat(path);
+		return wrapped.stat(unwrapPath(path));
+	}
+
+	@Override
+	public Path createDirectory(Path path, int mode) throws ReadOnlyFileSystemException {
+		if(path.getFileSystem() != this) throw new IllegalArgumentException();
+		throw new ReadOnlyFileSystemException();
 	}
 }
