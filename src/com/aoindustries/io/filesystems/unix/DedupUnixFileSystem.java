@@ -63,6 +63,16 @@ public class DedupUnixFileSystem extends FileSystemWrapper implements UnixFileSy
 	@Override
 	public Stat stat(Path path) throws IOException {
 		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		return wrapped.stat(path);
+		return wrapped.stat(unwrapPath(path));
+	}
+
+	/**
+	 * Delegates to the wrapped file system.
+	 */
+	@Override
+	public Path createDirectory(Path path, int mode) throws IOException {
+		if(path.getFileSystem() != this) throw new IllegalArgumentException();
+		wrapped.createDirectory(unwrapPath(path), mode);
+		return path;
 	}
 }

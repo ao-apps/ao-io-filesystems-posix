@@ -50,6 +50,12 @@ public class TempUnixFileSystem extends TempFileSystem implements UnixFileSystem
 	}
 
 	@Override
+	public Path createFile(Path path, int mode) {
+		if(path.getFileSystem() != this) throw new IllegalArgumentException();
+		throw new NotImplementedException("TODO");
+	}
+
+	@Override
 	public Path createDirectory(Path path, int mode) {
 		if(path.getFileSystem() != this) throw new IllegalArgumentException();
 		throw new NotImplementedException("TODO");

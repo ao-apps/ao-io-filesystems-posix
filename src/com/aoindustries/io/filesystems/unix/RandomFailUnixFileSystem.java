@@ -26,6 +26,7 @@ import com.aoindustries.io.filesystems.Path;
 import com.aoindustries.io.filesystems.RandomFailFileSystem;
 import com.aoindustries.io.unix.Stat;
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.Random;
 
 /**
@@ -40,6 +41,9 @@ public class RandomFailUnixFileSystem extends RandomFailFileSystem implements Un
 		default float getStat() {
 			return 0.00001f;
 		}
+		default float getCreateFileMode() {
+			return getCreateFile();
+		}
 		default float getCreateDirectoryMode() {
 			return getCreateDirectory();
 		}
@@ -49,16 +53,16 @@ public class RandomFailUnixFileSystem extends RandomFailFileSystem implements Un
 	private final UnixFailureProbabilities unixFailureProbabilities;
 
 	public RandomFailUnixFileSystem(
-		UnixFileSystem wrapped,
+		UnixFileSystem wrappedFileSystem,
 		UnixFailureProbabilities unixFailureProbabilities,
 		Random random
 	) {
 		super(
-			wrapped,
+			wrappedFileSystem,
 			unixFailureProbabilities,
 			random
 		);
-		this.wrapped = wrapped;
+		this.wrapped = wrappedFileSystem;
 		this.unixFailureProbabilities = unixFailureProbabilities;
 	}
 
@@ -67,7 +71,7 @@ public class RandomFailUnixFileSystem extends RandomFailFileSystem implements Un
 	 * 
 	 * @see SecureRandom
 	 */
-	public RandomFailUnixFileSystem(UnixFileSystem wrapped) {
+	public RandomFailUnixFileSystem(UnixFileSystem wrappedFileSystem) {
 		this(
 			wrappedFileSystem,
 			new UnixFailureProbabilities() {},
@@ -83,6 +87,14 @@ public class RandomFailUnixFileSystem extends RandomFailFileSystem implements Un
 		if(path.getFileSystem() != this) throw new IllegalArgumentException();
 		randomFail(unixFailureProbabilities.getStat());
 		return wrapped.stat(unwrapPath(path));
+	}
+
+	@Override
+	public Path createFile(Path path, int mode) throws IOException {
+		if(path.getFileSystem() != this) throw new IllegalArgumentException();
+		randomFail(unixFailureProbabilities.getCreateFileMode());
+		wrapped.createFile(unwrapPath(path), mode);
+		return path;
 	}
 
 	@Override

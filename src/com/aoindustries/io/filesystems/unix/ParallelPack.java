@@ -92,7 +92,8 @@ public class ParallelPack {
 	 */
 	public static void main(String[] args) {
 		if(args.length == 0) {
-			System.err.println("Usage: "+ParallelPack.class.getName()+" [-h host] [-p port] [-v] [--] path {path}");
+			System.err.println("Usage: "+ParallelPack.class.getName()+" [-d root] [-h host] [-p port] [-v] [--] path {path}");
+			System.err.println("\t-d\tRead from a deduplicated filesystem at the given root, paths are relative to this root");
 			System.err.println("\t-h\tWill connect to host instead of writing to standard out");
 			System.err.println("\t-p\tWill connect to port instead of port "+PackProtocol.DEFAULT_PORT);
 			System.err.println("\t-v\tWrite the full path to standard error as each file is packed");
@@ -168,7 +169,6 @@ public class ParallelPack {
 	 */
 	public static void parallelPack(List<UnixFile> directories, OutputStream out, final PrintStream verboseOutput, boolean compress) throws IOException {
 		// Reused throughout method
-		final Stat stat = new Stat();
 		final int numDirectories = directories.size();
 
 		// The set of next files is kept in key order so that it can scale with O(n*log(n)) for larger numbers of directories
@@ -188,7 +188,7 @@ public class ParallelPack {
 			int nextSlot = 0;
 			final Map<String,FilesystemIteratorRule> prefixRules = Collections.emptyMap();
 			for(UnixFile directory : directories) {
-				directory.getStat(stat);
+				Stat stat = directory.getStat();
 				if(!stat.exists()) throw new IOException("Directory not found: "+directory.getPath());
 				if(!stat.isDirectory()) throw new IOException("Not a directory: "+directory.getPath());
 				String path = directory.getFile().getCanonicalPath();
@@ -288,7 +288,7 @@ public class ParallelPack {
 							}
 
 							// Handle this file
-							uf.getStat(stat);
+							Stat stat = uf.getStat();
 							if(stat.isRegularFile()) {
 								compressedOut.writeByte(PackProtocol.REGULAR_FILE);
 								compressedOut.writeCompressedUTF(packPath, iteratorAndSlot.slot);

@@ -83,6 +83,18 @@ public interface UnixFileSystem extends FileSystem {
 	Stat stat(Path path) throws IOException;
 
 	/**
+	 * Atomically creates an empty file (must not have already existed) with the
+	 * given permissions.
+	 * 
+	 * @return  returns the path
+	 * 
+	 * @throws UnsupportedOperationException if unable to create atomically
+	 * @throws FileAlreadyExistsException if file already exists
+	 * @throws IOException if an underlying I/O error occurs.
+	 */
+	Path createFile(Path path, int mode) throws IOException;
+
+	/**
 	 * Atomically creates a directory (must not have already existed) with the
 	 * given permissions.
 	 * 

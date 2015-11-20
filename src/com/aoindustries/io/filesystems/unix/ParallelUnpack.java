@@ -77,7 +77,8 @@ public class ParallelUnpack {
 	 */
 	public static void main(String[] args) {
 		if(args.length == 0) {
-			System.err.println("Usage: "+ParallelUnpack.class.getName()+" [-l] [-h host] [-p port] [-n] [-v] [--] path");
+			System.err.println("Usage: "+ParallelUnpack.class.getName()+" [-d root] [-l] [-h host] [-p port] [-n] [-v] [--] path");
+			System.err.println("\t-d\tWrite to a deduplicated filesystem at the given root, paths are relative to this root");
 			System.err.println("\t-l\tWill listen for an incoming connection instead of reading from standard in");
 			System.err.println("\t-h\tWill listen on the interface matching host");
 			System.err.println("\t-p\tWill listen on port instead of port "+PackProtocol.DEFAULT_PORT);
@@ -169,11 +170,10 @@ public class ParallelUnpack {
 	 * Unpacks from the provided output stream.  The stream is flushed but not closed.
 	 */
 	public static void parallelUnpack(String path, InputStream in, final PrintStream verboseOutput, boolean dryRun, boolean force) throws IOException {
-		final Stat stat = new Stat();
 		final UnixFile destination = new UnixFile(path);
-		destination.getStat(stat);
-		if(!stat.exists()) throw new IOException("Directory not found: "+destination.getPath());
-		if(!stat.isDirectory()) throw new IOException("Not a directory: "+destination.getPath());
+		Stat destinationStat = destination.getStat();
+		if(!destinationStat.exists()) throw new IOException("Directory not found: "+destination.getPath());
+		if(!destinationStat.isDirectory()) throw new IOException("Not a directory: "+destination.getPath());
 
 		final BlockingQueue<String> verboseQueue;
 		final boolean[] verboseThreadRun;
@@ -260,16 +260,18 @@ public class ParallelUnpack {
 								if(packPath.startsWith(pathAndMod.path)) break;
 								SB.setLength(0);
 								UnixFile uf = new UnixFile(SB.append(path).append(pathAndMod.path).toString());
-								uf.getStat(stat);
-								uf.utime(stat.getAccessTime(), pathAndMod.modifyTime);
+								uf.utime(
+									uf.getStat().getAccessTime(),
+									pathAndMod.modifyTime
+								);
 								mtimeStack.pop();
 							}
 						}
 
 						// Make sure doesn't exist if not in force mode
 						UnixFile uf = new UnixFile(fullPath);
-						uf.getStat(stat);
-						if(!force && stat.exists()) throw new IOException("Exists: "+fullPath);
+						Stat ufStat = uf.getStat();
+						if(!force && ufStat.exists()) throw new IOException("Exists: "+fullPath);
 
 						// Handle this file
 						if(type==PackProtocol.REGULAR_FILE) {
@@ -282,11 +284,11 @@ public class ParallelUnpack {
 								long modifyTime = compressedIn.readLong();
 								if(dryRun) skipFile(compressedIn, buffer);
 								else {
-									if(stat.exists()) uf.deleteRecursive();
+									if(ufStat.exists()) uf.deleteRecursive();
 									readFile(uf, compressedIn, buffer);
 									uf.chown(uid, gid).setMode(mode);
-									uf.getStat(stat);
-									uf.utime(stat.getAccessTime(), modifyTime);
+									ufStat = uf.getStat();
+									uf.utime(ufStat.getAccessTime(), modifyTime);
 								}
 							} else {
 								Long linkIdL = linkId;
@@ -294,7 +296,7 @@ public class ParallelUnpack {
 								if(pathAndCount != null) {
 									// Already sent, link and decrement our count
 									if(!dryRun) {
-										if(stat.exists()) uf.deleteRecursive();
+										if(ufStat.exists()) uf.deleteRecursive();
 										SB.setLength(0);
 										SB.append(path);
 										SB.append(pathAndCount.path);
@@ -311,11 +313,11 @@ public class ParallelUnpack {
 									int numLinks = compressedIn.readInt();
 									if(dryRun) skipFile(compressedIn, buffer);
 									else {
-										if(stat.exists()) uf.deleteRecursive();
+										if(ufStat.exists()) uf.deleteRecursive();
 										readFile(uf, compressedIn, buffer);
 										uf.chown(uid, gid).setMode(mode);
-										uf.getStat(stat);
-										uf.utime(stat.getAccessTime(), modifyTime);
+										ufStat = uf.getStat();
+										uf.utime(ufStat.getAccessTime(), modifyTime);
 									}
 									linkPathAndCounts.put(linkIdL, new PathAndCount(packPath, numLinks-1));
 								}
@@ -326,13 +328,13 @@ public class ParallelUnpack {
 							long mode = compressedIn.readLong();
 							long modifyTime = compressedIn.readLong();
 							if(!dryRun) {
-								if(stat.exists()) {
-									if(!stat.isDirectory()) {
+								if(ufStat.exists()) {
+									if(!ufStat.isDirectory()) {
 										uf.deleteRecursive();
 										uf.mkdir().chown(uid, gid).setMode(mode);
 									} else {
-										if(stat.getUid()!=uid || stat.getGid()!=gid) uf.chown(uid, gid);
-										if(stat.getMode()!=mode) uf.setMode(mode);
+										if(ufStat.getUid()!=uid || ufStat.getGid()!=gid) uf.chown(uid, gid);
+										if(ufStat.getMode()!=mode) uf.setMode(mode);
 									}
 								} else {
 									uf.mkdir().chown(uid, gid).setMode(mode);
@@ -348,7 +350,7 @@ public class ParallelUnpack {
 							int gid = compressedIn.readInt();
 							String target = compressedIn.readCompressedUTF();
 							if(!dryRun) {
-								if(stat.exists()) uf.deleteRecursive();
+								if(ufStat.exists()) uf.deleteRecursive();
 								uf.symLink(target).chown(uid, gid);
 							}
 						} else if(type==PackProtocol.BLOCK_DEVICE) {
@@ -357,7 +359,7 @@ public class ParallelUnpack {
 							long mode = compressedIn.readLong();
 							long deviceIdentifier = compressedIn.readLong();
 							if(!dryRun) {
-								if(stat.exists()) uf.deleteRecursive();
+								if(ufStat.exists()) uf.deleteRecursive();
 								uf.mknod(mode|UnixFile.IS_BLOCK_DEVICE, deviceIdentifier).chown(uid, gid);
 							}
 						} else if(type==PackProtocol.CHARACTER_DEVICE) {
@@ -366,7 +368,7 @@ public class ParallelUnpack {
 							long mode = compressedIn.readLong();
 							long deviceIdentifier = compressedIn.readLong();
 							if(!dryRun) {
-								if(stat.exists()) uf.deleteRecursive();
+								if(ufStat.exists()) uf.deleteRecursive();
 								uf.mknod(mode|UnixFile.IS_CHARACTER_DEVICE, deviceIdentifier).chown(uid, gid);
 							}
 						} else if(type==PackProtocol.FIFO) {
@@ -374,7 +376,7 @@ public class ParallelUnpack {
 							int gid = compressedIn.readInt();
 							long mode = compressedIn.readLong();
 							if(!dryRun) {
-								if(stat.exists()) uf.deleteRecursive();
+								if(ufStat.exists()) uf.deleteRecursive();
 								uf.mkfifo(mode).chown(uid, gid);
 							}
 						} else throw new IOException("Unexpected value for type: "+type);
@@ -386,8 +388,7 @@ public class ParallelUnpack {
 							PathAndModifyTime pathAndMod = mtimeStack.pop();
 							SB.setLength(0);
 							UnixFile uf = new UnixFile(SB.append(path).append(pathAndMod.path).toString());
-							uf.getStat(stat);
-							uf.utime(stat.getAccessTime(), pathAndMod.modifyTime);
+							uf.utime(uf.getStat().getAccessTime(), pathAndMod.modifyTime);
 						}
 					}
 				}

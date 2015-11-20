@@ -52,6 +52,12 @@ public class ReadOnlyUnixFileSystem extends ReadOnlyFileSystem implements UnixFi
 	}
 
 	@Override
+	public Path createFile(Path path, int mode) throws ReadOnlyFileSystemException {
+		if(path.getFileSystem() != this) throw new IllegalArgumentException();
+		throw new ReadOnlyFileSystemException();
+	}
+
+	@Override
 	public Path createDirectory(Path path, int mode) throws ReadOnlyFileSystemException {
 		if(path.getFileSystem() != this) throw new IllegalArgumentException();
 		throw new ReadOnlyFileSystemException();
