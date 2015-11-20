@@ -11,6 +11,7 @@ import com.aoindustries.cron.CronJobScheduleMode;
 import com.aoindustries.cron.Schedule;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.md5.MD5;
 import com.aoindustries.util.StringUtility;
 import java.io.File;
 import java.io.IOException;
@@ -189,6 +190,34 @@ public class DedupDataIndex {
 	private static final int FILE_SYSTEM_BLOCK_SIZE = 4096;
 
 	/**
+	 * The number of bits in an MD5 sum.
+	 */
+	private static final int MD5_SUM_BITS = 128;
+
+	/**
+	 * The number of bits per hex character.
+	 */
+	private static final int HEX_BITS = 4;
+
+	/**
+	 * The number of bits of the MD5 sum used for the directory hash.
+	 * This must be a multiple of 4 for the hex encoding of filenames.
+	 */
+	private static final int DIRECTORY_HASH_BITS = 16;
+	static {
+		assert DIRECTORY_HASH_BITS >= HEX_BITS && DIRECTORY_HASH_BITS <= (MD5_SUM_BITS - HEX_BITS);
+		assert (DIRECTORY_HASH_BITS & (HEX_BITS - 1)) == 0 : "This must be a multiple of " + HEX_BITS + " for the hex encoding of filenames.";
+	}
+
+	/**
+	 * The number of hex characters in the directory hash filename.
+	 */
+	private static final int DIRECTORY_HASH_CHARACTERS = DIRECTORY_HASH_BITS / HEX_BITS;
+	static {
+		assert DIRECTORY_HASH_CHARACTERS >=1;
+	}
+
+	/**
 	 * The index directory permissions.
 	 */
 	private static final int DIRECTORY_MODE = 0700;
@@ -243,24 +272,26 @@ public class DedupDataIndex {
 	 * Gets the lock for a specific hash directory, never removed once created.
 	 */
 	private Object getHashLock(Integer hashDir) {
-		if(hashDir < 0 || hashDir > 0xffff) throw new IllegalArgumentException("hashDir out of range (0-0xffff): " + hashDir);
+		final int MAX_DIRECTORY_HASH = (2 ^ DIRECTORY_HASH_BITS) - 1;
+		if(hashDir < 0 || hashDir > MAX_DIRECTORY_HASH) throw new IllegalArgumentException("hashDir out of range (0 - " + MAX_DIRECTORY_HASH + "): " + hashDir);
 		synchronized(hashLocks) {
 			Object hashLock = hashLocks.get(hashDir);
 			if(hashLock == null) {
 				hashLock = new Object() {
 					@Override
 					public String toString() {
-						return
-							DedupDataIndex.class.getName()
-							+ "("
-							+ canonicalDirectory
-							+ ").hashLock("
-							+ StringUtility.getHexChar(hashDir >>> 12)
-							+ StringUtility.getHexChar(hashDir >>> 8)
-							+ StringUtility.getHexChar(hashDir >>> 4)
-							+ StringUtility.getHexChar(hashDir)
-							+ ")"
-						;
+						StringBuilder sb = new StringBuilder();
+						sb.append(DedupDataIndex.class.getName());
+						sb.append('(');
+						sb.append(canonicalDirectory);
+						sb.append(").hashLock(");
+						int shift = HEX_BITS * DIRECTORY_HASH_CHARACTERS;
+						do {
+							shift -= HEX_BITS;
+							sb.append(StringUtility.getHexChar(hashDir >>> shift));
+						} while(shift > 0);
+						sb.append(')');
+						return sb.toString();
 					}
 				};
 				hashLocks.put(hashDir, hashLock);
@@ -328,13 +359,15 @@ public class DedupDataIndex {
 	 * Parses a hash directory name.
 	 */
 	private static int parseHashDir(String hex) throws NumberFormatException {
-		if(hex.length() != 4) throw new NumberFormatException("Hash directory must be four characters long: " + hex);
-		return
-			  (StringUtility.getHex(hex.charAt(0)) << 12)
-			| (StringUtility.getHex(hex.charAt(1)) << 8)
-			| (StringUtility.getHex(hex.charAt(2)) << 4)
-			|  StringUtility.getHex(hex.charAt(3))
-		;
+		if(hex.length() != DIRECTORY_HASH_CHARACTERS) throw new NumberFormatException("Hash directory must be " + DIRECTORY_HASH_CHARACTERS + " characters long: " + hex);
+		int total = 0;
+		int shift = HEX_BITS * DIRECTORY_HASH_CHARACTERS;
+		int pos = 0;
+		do {
+			shift -= HEX_BITS;
+			total |= StringUtility.getHex(hex.charAt(pos++)) << shift;
+		} while(shift > 0);
+		return total;
 	}
 
 	/**
