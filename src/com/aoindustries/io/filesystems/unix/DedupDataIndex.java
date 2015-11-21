@@ -5,19 +5,16 @@
  */
 package com.aoindustries.io.filesystems.unix;
 
-import com.aoindustries.cron.CronDaemon;
-import com.aoindustries.cron.CronJob;
-import com.aoindustries.cron.CronJobScheduleMode;
-import com.aoindustries.cron.Schedule;
 import com.aoindustries.io.filesystems.FileLock;
+import com.aoindustries.io.filesystems.FileSystem;
 import com.aoindustries.io.filesystems.Path;
 import com.aoindustries.io.filesystems.PathIterator;
 import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.util.StringUtility;
 import java.io.IOException;
 import java.nio.file.FileSystemException;
-import java.nio.file.StandardOpenOption;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.NotDirectoryException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -228,6 +225,11 @@ public class DedupDataIndex {
 	}
 
 	/**
+	 * The filename used to lock directories.
+	 */
+	private static final String LOCK_FILE_NAME = "lock";
+
+	/**
 	 * The index directory permissions.
 	 */
 	private static final int DIRECTORY_MODE = 0700;
@@ -242,13 +244,6 @@ public class DedupDataIndex {
 	 */
 	private static final long VERIFICATION_INTERVAL = 7L * 24L * 60L * 60L * 1000L; // 7 Days
 
-	/**
-	 * The time that orphans will be cleaned.
-	 */
-	private static final int
-		CLEAN_ORPHANS_HOUR = 1,
-		CLEAN_ORPHANS_MINUTE = 49
-	;
 
 	// <editor-fold defaultstate="collapsed" desc="Obtaining instances">
 	private static class InstanceKey {
@@ -311,42 +306,6 @@ public class DedupDataIndex {
 		} else if(!stat.isDirectory()) {
 			throw new IOException("Not a directory: " + this.dataIndexDir);
 		}
-
-		/**
-		 * Add the CronJob that cleans orphaned data in the background.
-		 */
-		CronJob cleanupJob = new CronJob() {
-			@Override
-			public Schedule getCronJobSchedule() {
-				return
-					(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year)
-					-> minute==CLEAN_ORPHANS_MINUTE && hour==CLEAN_ORPHANS_HOUR
-				;
-			}
-			@Override
-			public CronJobScheduleMode getCronJobScheduleMode() {
-				return CronJobScheduleMode.SKIP;
-			}
-			@Override
-			public String getCronJobName() {
-				return DedupDataIndex.class.getName()+".cleanOrphans()";
-			}
-			@Override
-			public int getCronJobThreadPriority() {
-				return Thread.NORM_PRIORITY;
-			}
-			@Override
-			public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
-				try {
-					cleanOrphans();
-				} catch(IOException e) {
-					logger.log(Level.SEVERE, "clean orphans failed", e);
-				}
-			}
-		};
-		CronDaemon.addCronJob(cleanupJob, logger);
-		// Clean once on startup
-		CronDaemon.runImmediately(cleanupJob);
 	}
 
 	/**
@@ -396,10 +355,19 @@ public class DedupDataIndex {
 				name.append(StringUtility.getHexChar(hashDir >>> shift));
 			} while(shift > 0);
 			this.lockDirName = name.toString();
-			this.lockPath = new Path(dataIndexDir, lockDirName);
+			this.lockPath = new Path(
+				new Path(dataIndexDir, lockDirName),
+				LOCK_FILE_NAME
+			);
 			Stat stat = fileSystem.stat(lockPath);
 			if(!stat.exists()) {
-				fileSystem.createFile(lockPath, FILE_MODE);
+				try {
+					fileSystem.createFile(lockPath, FILE_MODE);
+				} catch(IOException e) {
+					// Check race condition: OK if some other process created the file
+					stat = fileSystem.stat(lockPath);
+					if(!stat.exists() || !stat.isRegularFile()) throw e;
+				}
 			} else if(!stat.isRegularFile()) {
 				throw new FileSystemException("Not a regular file: " + lockPath);
 			}
@@ -418,11 +386,6 @@ public class DedupDataIndex {
 		}
 
 		/**
-		 * The channel for the currently held lock.
-		 */
-		private FileChannel channel;
-
-		/**
 		 * The currently opened lock.
 		 */
 		private FileLock lock;
@@ -433,65 +396,12 @@ public class DedupDataIndex {
 		private Thread thread;
 
 		/**
-		 * Gets an exclusive lock on this hash directory.  The lock must be
-		 * released when done manipulating the directory.
-		 * Must be used in a try/finally block.
-		 * The locks are not reentrant.
-		 * The obtained lock must not be given to another thread.
+		 * Gets an exclusive lock on this hash directory.
 		 *
-		 * @see  #unlock()
+		 * @see  FileSystem#lock(com.aoindustries.io.filesystems.Path)
 		 */
 		private FileLock lock() throws IOException {
-			Thread currentThread = Thread.currentThread();
-			synchronized(this) {
-				// Avoid obvious deadlock scenario, these locks are not reentrant
-				if(currentThread == thread) {
-					throw new IllegalStateException("Thread already has the lock, locks are not reentrant: " + lockDirName);
-				}
-				// Wait for existing lock to be unlocked
-				while(lock != null && lock.isValid()) {
-					try {
-						this.wait();
-					} catch(InterruptedException e) {
-						// Interruption is OK
-					}
-				}
-				// Close old channel here, just to be extra safe
-				if(channel != null) {
-					channel.close();
-					channel = null;
-				}
-				// Obtain lock
-				channel = FileChannel.open(lockPath, StandardOpenOption.READ);
-				lock = channel.lock();
-				thread = currentThread;
-			}
-		}
-
-		/**
-		 * Unlocks this directory.  Must be called in a try/finally block.
-		 * 
-		 * @see  #lock()
-		 */
-		private void unlock() throws IOException {
-			Thread currentThread = Thread.currentThread();
-			synchronized(this) {
-				if(thread != null) {
-					if(thread != currentThread) {
-						throw new IllegalStateException("Lock was not obtained by this thread: " + lockDirName);
-					}
-					thread = null;
-				}
-				if(lock != null) {
-					this.notify();
-					lock.close();
-					lock = null;
-				}
-				if(channel != null) {
-					channel.close();
-					channel = null;
-				}
-			}
+			return fileSystem.lock(lockPath);
 		}
 	}
 
@@ -515,90 +425,76 @@ public class DedupDataIndex {
 	}
 	// </editor-fold>
 
+	// <editor-fold defaultstate="collapsed" desc="Background verification">
 	/**
 	 * Cleans all orphaned index files.  The lock is only held briefly one file
 	 * at a time, so other I/O can be interleaved with this cleanup process.
 	 * It is possible that new orphans created during the cleanup will not be
 	 * cleaned-up on this pass.
+	 * <p>
+	 * For long-lived data indexes, it is good to run this once per day during low usage times.
+	 * </p>
+	 * @param  quick  When true, performs a quick pass to clean orphaned data
+	 *                only, but does not verify MD5 sums.
 	 */
-	public void cleanOrphans() throws IOException {
+	public void verify(boolean quick) throws IOException {
 		try (PathIterator dataIndexIter = fileSystem.list(dataIndexDir)) {
 			while(dataIndexIter.hasNext()) {
 				Path hashDirPath = dataIndexIter.next();
-				int hashDir;
-				try {
-					hashDir = parseHashDir(hashDirPath.getName());
-				} catch(NumberFormatException e) {
-					logger.log(Level.WARNING, "Skipping non-hash directory: " + hashDirPath, e);
-					continue;
-				}
-				final HashDirectoryLock hashDirLock = getHashLock(hashDir);
-				String[] list;
-				hashDirLock.lock();
-				try {
-					list = hashDirUF.list();
-				} finally {
-					hashDirLock.unlock();
-				}
-				if(list != null) {
-					boolean hasKeptFile = false;
-					final Stat stat = new Stat();
-					for(String filename : list) {
-						UnixFile uf = new UnixFile(hashDirUF, filename, false);
-						hashDirLock.lock();
-						try {
-							uf.getStat(stat);
-							// Must still exist
-							if(stat.exists()) {
-								if(
-									// Must be a regular file
-									stat.isRegularFile()
-									// Must have a link count of one
-									&& stat.getNumberLinks() == 1
-								) {
-									logger.log(Level.WARNING, "Removing orphan: " + uf);
-									uf.delete();
-									// TODO: Renumber any files after this one by both collision# and link#
-									//       (or move highest number into first empty slot)
-								} else {
-									hasKeptFile = true;
-								}
-							}
-						} finally {
-							hashDirLock.unlock();
-						}
-						// We'll play extra nice by letting others grab the lock before
-						// going on to the next file.
-						Thread.yield();
+				String hashDirFilename = hashDirPath.getName();
+				// Skip lock files
+				if(!LOCK_FILE_NAME.equals(hashDirFilename)) {
+					int hashDir;
+					try {
+						hashDir = parseHashDir(hashDirFilename);
+					} catch(NumberFormatException e) {
+						logger.log(Level.WARNING, "Skipping non-hash directory: " + hashDirPath, e);
+						continue;
 					}
-					list = null; // Done with this potentially long array
-
-					// Remove the hash directory itself if now empty
-					if(!hasKeptFile) {
-						boolean logSkippedNonDirectory = false;
-						hashDirLock.lock();
-						try {
-							hashDirUF.getStat(stat);
-							if(stat.exists()) {
-								if(stat.isDirectory()) {
-									list = hashDirUF.list();
-									if(list==null || list.length == 0) {
-										logger.log(Level.WARNING, "Removing empty hash directory: " + hashDirUF);
-										hashDirUF.delete();
+					final HashDirectoryLock hashDirLock = getHashLock(hashDir);
+					PathIterator list = null;
+					try {
+						try (FileLock lock = hashDirLock.lock()) {
+							list = fileSystem.list(hashDirPath);
+						} catch(NoSuchFileException | NotDirectoryException e) {
+							// These are OK since we're working on a live file system
+							// list remains null
+						}
+						if(list != null) {
+							while(list.hasNext()) {
+								Path file = list.next();
+								String filename = file.getName();
+								// Skip lock files
+								if(!LOCK_FILE_NAME.equals(filename)) {
+									try (FileLock lock = hashDirLock.lock()) {
+										Stat stat = fileSystem.stat(file);
+										// Must still exist
+										if(stat.exists()) {
+											if(
+												// Must be a regular file
+												stat.isRegularFile()
+												// Must have a link count of one
+												&& stat.getNumberLinks() == 1
+											) {
+												logger.log(Level.WARNING, "Removing orphan: " + file);
+												fileSystem.delete(file);
+												// TODO: Renumber any files after this one by both collision# and link#
+												//       (or move highest number into first empty slot)
+											}
+										}
 									}
-								} else {
-									logSkippedNonDirectory = true;
+									// We'll play extra nice by letting others grab the lock before
+									// going on to the next file.
+									Thread.yield();
 								}
 							}
-						} finally {
-							hashDirLock.unlock();
 						}
-						if(logSkippedNonDirectory) {
-							logger.log(Level.WARNING, "Skipping non-directory: " + hashDirPath);
-						}
+					} finally {
+						if(list != null) list.close();
 					}
 				}
 			}
 		}
 	}
+	// </editor-fold>
 }
