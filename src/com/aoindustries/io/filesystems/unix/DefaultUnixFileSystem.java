@@ -28,6 +28,7 @@ import com.aoindustries.io.filesystems.Path;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.IOException;
+import java.nio.file.FileSystems;
 
 /**
  * The Unix file system implement by the UnixFile.
@@ -48,6 +49,7 @@ public class DefaultUnixFileSystem extends JavaFileSystem implements UnixFileSys
 	}
 
 	protected DefaultUnixFileSystem() {
+		super(FileSystems.getDefault());
 		if(!isSingleRoot) throw new AssertionError("Default Unix filesystem must always be single root");
 	}
 
