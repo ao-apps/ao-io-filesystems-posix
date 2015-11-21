@@ -92,8 +92,7 @@ public class ParallelPack {
 	 */
 	public static void main(String[] args) {
 		if(args.length == 0) {
-			System.err.println("Usage: "+ParallelPack.class.getName()+" [-d root] [-h host] [-p port] [-v] [--] path {path}");
-			System.err.println("\t-d\tRead from a deduplicated filesystem at the given root, paths are relative to this root");
+			System.err.println("Usage: "+ParallelPack.class.getName()+" [-h host] [-p port] [-v] [--] path {path}");
 			System.err.println("\t-h\tWill connect to host instead of writing to standard out");
 			System.err.println("\t-p\tWill connect to port instead of port "+PackProtocol.DEFAULT_PORT);
 			System.err.println("\t-v\tWrite the full path to standard error as each file is packed");
