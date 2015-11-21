@@ -25,6 +25,7 @@ package com.aoindustries.io.filesystems.unix;
 import com.aoindustries.io.filesystems.FileSystemWrapper;
 import com.aoindustries.io.filesystems.Path;
 import com.aoindustries.io.unix.Stat;
+import com.aoindustries.lang.NotImplementedException;
 import java.io.IOException;
 
 /**
@@ -64,6 +65,18 @@ public class DedupUnixFileSystem extends FileSystemWrapper implements UnixFileSy
 	public Stat stat(Path path) throws IOException {
 		if(path.getFileSystem() != this) throw new IllegalArgumentException();
 		return wrapped.stat(unwrapPath(path));
+	}
+
+	@Override
+	public Path createFile(Path path) throws IOException {
+		if(path.getFileSystem() != this) throw new IllegalArgumentException();
+		throw new NotImplementedException("TODO");
+	}
+
+	@Override
+	public Path createFile(Path path, int mode) throws IOException {
+		if(path.getFileSystem() != this) throw new IllegalArgumentException();
+		throw new NotImplementedException("TODO");
 	}
 
 	/**

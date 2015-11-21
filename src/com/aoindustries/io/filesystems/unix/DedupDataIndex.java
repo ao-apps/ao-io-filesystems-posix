@@ -9,16 +9,14 @@ import com.aoindustries.cron.CronDaemon;
 import com.aoindustries.cron.CronJob;
 import com.aoindustries.cron.CronJobScheduleMode;
 import com.aoindustries.cron.Schedule;
+import com.aoindustries.io.filesystems.FileLock;
+import com.aoindustries.io.filesystems.Path;
+import com.aoindustries.io.filesystems.PathIterator;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.util.StringUtility;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
 import java.nio.file.FileSystemException;
-import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.Map;
@@ -252,28 +250,133 @@ public class DedupDataIndex {
 		CLEAN_ORPHANS_MINUTE = 49
 	;
 
-	/**
-	 * Only one instance is created per canonical index directory.
-	 */
-	private static final Map<File,DedupDataIndex> instances = new HashMap<>();
+	// <editor-fold defaultstate="collapsed" desc="Obtaining instances">
+	private static class InstanceKey {
+
+		private final UnixFileSystem fileSystem;
+		private final Path dataIndexDir;
+
+		private InstanceKey(UnixFileSystem fileSystem, Path dataIndexDir) {
+			if(fileSystem != dataIndexDir.getFileSystem()) throw new IllegalArgumentException("fileSystem and path.fileSystem do not match");
+			this.fileSystem = fileSystem;
+			this.dataIndexDir = dataIndexDir;
+		}
+
+		@Override
+		public int hashCode() {
+			return dataIndexDir.getFileSystem().hashCode() * 31 + dataIndexDir.hashCode();
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if(!(obj instanceof InstanceKey)) return false;
+			InstanceKey other = (InstanceKey)obj;
+			return
+				fileSystem == other.fileSystem
+				&& dataIndexDir.equals(other.dataIndexDir)
+			;
+		}
+	}
+
+	private static final Map<InstanceKey,DedupDataIndex> instances = new HashMap<>();
 
 	/**
 	 * Gets the index for the given index directory.
-	 * Only one instance is created per canonical index directory.
+	 * Only one instance is created per file system instance and unique path.
 	 */
-	public static DedupDataIndex getInstance(File indexDirectory) throws IOException {
-		File canonicalDirectory = indexDirectory.getCanonicalFile();
+	public static DedupDataIndex getInstance(UnixFileSystem fileSystem, Path dataIndexDir) throws IOException {
 		synchronized(instances) {
-			DedupDataIndex instance = instances.get(canonicalDirectory);
+			InstanceKey key = new InstanceKey(fileSystem, dataIndexDir);
+			DedupDataIndex instance = instances.get(key);
 			if(instance == null) {
-				instance = new DedupDataIndex(canonicalDirectory);
-				instances.put(canonicalDirectory, instance);
+				instance = new DedupDataIndex(fileSystem, dataIndexDir);
+				instances.put(key, instance);
 			}
 			return instance;
 		}
 	}
+	// </editor-fold>
 
-	private final UnixFile canonicalDirectory;
+	private final UnixFileSystem fileSystem;
+	private final Path dataIndexDir;
+
+	private DedupDataIndex(UnixFileSystem fileSystem, Path dataIndexDir) throws IOException {
+		this.fileSystem = fileSystem;
+		this.dataIndexDir = dataIndexDir;
+
+		// Create the index directory if missing
+		Stat stat = fileSystem.stat(dataIndexDir);
+		if(!stat.exists()) {
+			fileSystem.createDirectory(dataIndexDir, DIRECTORY_MODE);
+		} else if(!stat.isDirectory()) {
+			throw new IOException("Not a directory: " + this.dataIndexDir);
+		}
+
+		/**
+		 * Add the CronJob that cleans orphaned data in the background.
+		 */
+		CronJob cleanupJob = new CronJob() {
+			@Override
+			public Schedule getCronJobSchedule() {
+				return
+					(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year)
+					-> minute==CLEAN_ORPHANS_MINUTE && hour==CLEAN_ORPHANS_HOUR
+				;
+			}
+			@Override
+			public CronJobScheduleMode getCronJobScheduleMode() {
+				return CronJobScheduleMode.SKIP;
+			}
+			@Override
+			public String getCronJobName() {
+				return DedupDataIndex.class.getName()+".cleanOrphans()";
+			}
+			@Override
+			public int getCronJobThreadPriority() {
+				return Thread.NORM_PRIORITY;
+			}
+			@Override
+			public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
+				try {
+					cleanOrphans();
+				} catch(IOException e) {
+					logger.log(Level.SEVERE, "clean orphans failed", e);
+				}
+			}
+		};
+		CronDaemon.addCronJob(cleanupJob, logger);
+		// Clean once on startup
+		CronDaemon.runImmediately(cleanupJob);
+	}
+
+	/**
+	 * The file system containing this index.
+	 */
+	public UnixFileSystem getFileSystem() {
+		return fileSystem;
+	}
+
+	/**
+	 * Returns the path (within the file system) containing this index.
+	 */
+	public Path getDataIndexDir() {
+		return dataIndexDir;
+	}
+
+	/**
+	 * Parses a hash directory name.
+	 */
+	private static int parseHashDir(String hex) throws NumberFormatException {
+		if(hex.length() != DIRECTORY_HASH_CHARACTERS) throw new NumberFormatException("Hash directory must be " + DIRECTORY_HASH_CHARACTERS + " characters long: " + hex);
+		int total = 0;
+		int shift = HEX_BITS * DIRECTORY_HASH_CHARACTERS;
+		int pos = 0;
+		do {
+			shift -= HEX_BITS;
+			total |= StringUtility.getHex(hex.charAt(pos++)) << shift;
+		} while(shift > 0);
+		return total;
+	}
 
 	// <editor-fold defaultstate="collapsed" desc="Hash directory locking">
 	/**
@@ -293,16 +396,13 @@ public class DedupDataIndex {
 				name.append(StringUtility.getHexChar(hashDir >>> shift));
 			} while(shift > 0);
 			this.lockDirName = name.toString();
-			UnixFile lockUF = new UnixFile(canonicalDirectory, lockDirName, false);
-			File lockFile = lockUF.getFile();
-			Stat stat = lockUF.getStat();
+			this.lockPath = new Path(dataIndexDir, lockDirName);
+			Stat stat = fileSystem.stat(lockPath);
 			if(!stat.exists()) {
-				new FileOutputStream(lockFile).close();
-				lockUF.setMode(FILE_MODE);
+				fileSystem.createFile(lockPath, FILE_MODE);
 			} else if(!stat.isRegularFile()) {
-				throw new FileSystemException("Not a regular file: " + lockUF.toString());
+				throw new FileSystemException("Not a regular file: " + lockPath);
 			}
-			lockPath = lockFile.toPath();
 		}
 
 		@Override
@@ -310,7 +410,7 @@ public class DedupDataIndex {
 			return
 				DedupDataIndex.class.getName()
 				+ '('
-				+ canonicalDirectory
+				+ DedupDataIndex.this.dataIndexDir
 				+ ").hashLock("
 				+ lockDirName
 				+ ')'
@@ -341,7 +441,7 @@ public class DedupDataIndex {
 		 *
 		 * @see  #unlock()
 		 */
-		private void lock() throws IOException {
+		private FileLock lock() throws IOException {
 			Thread currentThread = Thread.currentThread();
 			synchronized(this) {
 				// Avoid obvious deadlock scenario, these locks are not reentrant
@@ -415,76 +515,6 @@ public class DedupDataIndex {
 	}
 	// </editor-fold>
 
-	private DedupDataIndex(File canonicalDirectory) throws IOException {
-		this.canonicalDirectory = new UnixFile(canonicalDirectory);
-
-		// Create the index directory if missing
-		Stat stat = this.canonicalDirectory.getStat();
-		if(!stat.exists()) {
-			this.canonicalDirectory.mkdir(false, DIRECTORY_MODE);
-		} else if(!stat.isDirectory()) {
-			throw new IOException("Not a directory: " + this.canonicalDirectory);
-		}
-
-		/**
-		 * Add the CronJob that cleans orphaned data in the background.
-		 */
-		CronJob cleanupJob = new CronJob() {
-			@Override
-			public Schedule getCronJobSchedule() {
-				return
-					(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year)
-					-> minute==CLEAN_ORPHANS_MINUTE && hour==CLEAN_ORPHANS_HOUR
-				;
-			}
-			@Override
-			public CronJobScheduleMode getCronJobScheduleMode() {
-				return CronJobScheduleMode.SKIP;
-			}
-			@Override
-			public String getCronJobName() {
-				return DedupDataIndex.class.getName()+".cleanOrphans()";
-			}
-			@Override
-			public int getCronJobThreadPriority() {
-				return Thread.NORM_PRIORITY;
-			}
-			@Override
-			public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
-				try {
-					cleanOrphans();
-				} catch(IOException e) {
-					logger.log(Level.SEVERE, "clean orphans failed", e);
-				}
-			}
-		};
-		CronDaemon.addCronJob(cleanupJob, logger);
-		// Clean once on startup
-		CronDaemon.runImmediately(cleanupJob);
-	}
-
-	/**
-	 * The directory containing this index.
-	 */
-	public File getCanonicalDirectory() {
-		return canonicalDirectory.getFile();
-	}
-
-	/**
-	 * Parses a hash directory name.
-	 */
-	private static int parseHashDir(String hex) throws NumberFormatException {
-		if(hex.length() != DIRECTORY_HASH_CHARACTERS) throw new NumberFormatException("Hash directory must be " + DIRECTORY_HASH_CHARACTERS + " characters long: " + hex);
-		int total = 0;
-		int shift = HEX_BITS * DIRECTORY_HASH_CHARACTERS;
-		int pos = 0;
-		do {
-			shift -= HEX_BITS;
-			total |= StringUtility.getHex(hex.charAt(pos++)) << shift;
-		} while(shift > 0);
-		return total;
-	}
-
 	/**
 	 * Cleans all orphaned index files.  The lock is only held briefly one file
 	 * at a time, so other I/O can be interleaved with this cleanup process.
@@ -492,78 +522,81 @@ public class DedupDataIndex {
 	 * cleaned-up on this pass.
 	 */
 	public void cleanOrphans() throws IOException {
-		String[] hashDirs = canonicalDirectory.list();
-		if(hashDirs != null) {
-			for(String hashDir : hashDirs) {
+		try (PathIterator dataIndexIter = fileSystem.list(dataIndexDir)) {
+			while(dataIndexIter.hasNext()) {
+				Path hashDirPath = dataIndexIter.next();
+				int hashDir;
 				try {
-					final HashDirectoryLock hashDirLock = getHashLock(parseHashDir(hashDir));
-					final UnixFile hashDirUF = new UnixFile(canonicalDirectory, hashDir, false);
-					String[] list;
-					hashDirLock.lock();
-					try {
-						list = hashDirUF.list();
-					} finally {
-						hashDirLock.unlock();
-					}
-					if(list != null) {
-						boolean hasKeptFile = false;
-						final Stat stat = new Stat();
-						for(String filename : list) {
-							UnixFile uf = new UnixFile(hashDirUF, filename, false);
-							hashDirLock.lock();
-							try {
-								uf.getStat(stat);
-								// Must still exist
-								if(stat.exists()) {
-									if(
-										// Must be a regular file
-										stat.isRegularFile()
-										// Must have a link count of one
-										&& stat.getNumberLinks() == 1
-									) {
-										logger.log(Level.WARNING, "Removing orphan: " + uf);
-										uf.delete();
-										// TODO: Renumber any files after this one by both collision# and link#
-									} else {
-										hasKeptFile = true;
-									}
-								}
-							} finally {
-								hashDirLock.unlock();
-							}
-							// We'll play extra nice by letting others grab the lock before
-							// going on to the next file.
-							Thread.yield();
-						}
-						list = null; // Done with this potentially long array
-
-						// Remove the hash directory itself if now empty
-						if(!hasKeptFile) {
-							boolean logSkippedNonDirectory = false;
-							hashDirLock.lock();
-							try {
-								hashDirUF.getStat(stat);
-								if(stat.exists()) {
-									if(stat.isDirectory()) {
-										list = hashDirUF.list();
-										if(list==null || list.length == 0) {
-											logger.log(Level.WARNING, "Removing empty hash directory: " + hashDirUF);
-											hashDirUF.delete();
-										}
-									} else {
-										logSkippedNonDirectory = true;
-									}
-								}
-							} finally {
-								hashDirLock.unlock();
-							}
-							if(logSkippedNonDirectory) {
-								logger.log(Level.WARNING, "Skipping non-directory: " + hashDir);
-							}
-						}
-					}
+					hashDir = parseHashDir(hashDirPath.getName());
 				} catch(NumberFormatException e) {
-					logger.log(Level.WARNING, "Skipping non-hash directory: " + hashDir, e);
+					logger.log(Level.WARNING, "Skipping non-hash directory: " + hashDirPath, e);
+					continue;
+				}
+				final HashDirectoryLock hashDirLock = getHashLock(hashDir);
+				String[] list;
+				hashDirLock.lock();
+				try {
+					list = hashDirUF.list();
+				} finally {
+					hashDirLock.unlock();
+				}
+				if(list != null) {
+					boolean hasKeptFile = false;
+					final Stat stat = new Stat();
+					for(String filename : list) {
+						UnixFile uf = new UnixFile(hashDirUF, filename, false);
+						hashDirLock.lock();
+						try {
+							uf.getStat(stat);
+							// Must still exist
+							if(stat.exists()) {
+								if(
+									// Must be a regular file
+									stat.isRegularFile()
+									// Must have a link count of one
+									&& stat.getNumberLinks() == 1
+								) {
+									logger.log(Level.WARNING, "Removing orphan: " + uf);
+									uf.delete();
+									// TODO: Renumber any files after this one by both collision# and link#
+									//       (or move highest number into first empty slot)
+								} else {
+									hasKeptFile = true;
+								}
+							}
+						} finally {
+							hashDirLock.unlock();
+						}
+						// We'll play extra nice by letting others grab the lock before
+						// going on to the next file.
+						Thread.yield();
+					}
+					list = null; // Done with this potentially long array
+
+					// Remove the hash directory itself if now empty
+					if(!hasKeptFile) {
+						boolean logSkippedNonDirectory = false;
+						hashDirLock.lock();
+						try {
+							hashDirUF.getStat(stat);
+							if(stat.exists()) {
+								if(stat.isDirectory()) {
+									list = hashDirUF.list();
+									if(list==null || list.length == 0) {
+										logger.log(Level.WARNING, "Removing empty hash directory: " + hashDirUF);
+										hashDirUF.delete();
+									}
+								} else {
+									logSkippedNonDirectory = true;
+								}
+							}
+						} finally {
+							hashDirLock.unlock();
+						}
+						if(logSkippedNonDirectory) {
+							logger.log(Level.WARNING, "Skipping non-directory: " + hashDirPath);
+						}
+					}
 				}
 			}
 		}
