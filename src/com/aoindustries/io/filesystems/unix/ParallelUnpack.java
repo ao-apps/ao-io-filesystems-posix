@@ -77,7 +77,8 @@ public class ParallelUnpack {
 	 */
 	public static void main(String[] args) {
 		if(args.length == 0) {
-			System.err.println("Usage: "+ParallelUnpack.class.getName()+" [-l] [-h host] [-p port] [-n] [-v] [--] path");
+			System.err.println("Usage: "+ParallelUnpack.class.getName()+" [-d root] [-l] [-h host] [-p port] [-n] [-v] [--] path");
+			System.err.println("\t-d\tWrite to a deduplicated filesystem at the given root, paths are relative to this root");
 			System.err.println("\t-l\tWill listen for an incoming connection instead of reading from standard in");
 			System.err.println("\t-h\tWill listen on the interface matching host");
 			System.err.println("\t-p\tWill listen on port instead of port "+PackProtocol.DEFAULT_PORT);
@@ -195,6 +196,8 @@ public class ParallelUnpack {
 							verboseOutput.println(verboseQueue.take());
 							if(verboseQueue.isEmpty()) verboseOutput.flush();
 						} catch(InterruptedException err) {
+							// Restore the interrupted status
+							Thread.currentThread().interrupt();
 							// Normal during thread shutdown
 						}
 					}
@@ -235,6 +238,8 @@ public class ParallelUnpack {
 							try {
 								verboseQueue.put(packPath);
 							} catch(InterruptedException err) {
+								// Restore the interrupted status
+								Thread.currentThread().interrupt();
 								IOException ioErr = new InterruptedIOException();
 								ioErr.initCause(err);
 								throw ioErr;
@@ -405,6 +410,8 @@ public class ParallelUnpack {
 				try {
 					verboseThread.join();
 				} catch(InterruptedException err) {
+					// Restore the interrupted status
+					Thread.currentThread().interrupt();
 					IOException ioErr = new InterruptedIOException();
 					ioErr.initCause(err);
 					throw ioErr;
