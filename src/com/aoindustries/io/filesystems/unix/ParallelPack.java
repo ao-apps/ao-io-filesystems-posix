@@ -1,6 +1,6 @@
 /*
  * ao-io-filesystems-unix - Advanced filesystem utilities for Unix.
- * Copyright (C) 2009, 2010, 2011, 2013, 2015  AO Industries, Inc.
+ * Copyright (C) 2009, 2010, 2011, 2013, 2015, 2018  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -229,8 +229,6 @@ public class ParallelPack {
 							verboseOutput.println(verboseQueue.take());
 							if(verboseQueue.isEmpty()) verboseOutput.flush();
 						} catch(InterruptedException err) {
-							// Restore the interrupted status
-							Thread.currentThread().interrupt();
 							// Normal during thread shutdown
 						}
 					}
@@ -283,8 +281,6 @@ public class ParallelPack {
 								try {
 									verboseQueue.put(packPath);
 								} catch(InterruptedException err) {
-									// Restore the interrupted status
-									Thread.currentThread().interrupt();
 									IOException ioErr = new InterruptedIOException();
 									ioErr.initCause(err);
 									throw ioErr;
@@ -402,8 +398,6 @@ public class ParallelPack {
 				try {
 					verboseThread.join();
 				} catch(InterruptedException err) {
-					// Restore the interrupted status
-					Thread.currentThread().interrupt();
 					IOException ioErr = new InterruptedIOException();
 					ioErr.initCause(err);
 					throw ioErr;
