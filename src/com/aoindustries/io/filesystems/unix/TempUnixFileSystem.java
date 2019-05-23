@@ -1,6 +1,6 @@
 /*
  * ao-io-filesystems-unix - Advanced filesystem utilities for Unix.
- * Copyright (C) 2015  AO Industries, Inc.
+ * Copyright (C) 2015, 2019  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -26,7 +26,6 @@ import com.aoindustries.io.filesystems.InvalidPathException;
 import com.aoindustries.io.filesystems.Path;
 import com.aoindustries.io.filesystems.TempFileSystem;
 import com.aoindustries.io.unix.Stat;
-import com.aoindustries.lang.NotImplementedException;
 
 /**
  * A temporary Unix file system stored in the Java heap.
@@ -44,20 +43,23 @@ public class TempUnixFileSystem extends TempFileSystem implements UnixFileSystem
 	}
 
 	@Override
+	@SuppressWarnings("deprecation")
 	public Stat stat(Path path) {
 		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		throw new NotImplementedException("TODO");
+		throw new com.aoindustries.lang.NotImplementedException("TODO");
 	}
 
 	@Override
+	@SuppressWarnings("deprecation")
 	public Path createFile(Path path, int mode) {
 		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		throw new NotImplementedException("TODO");
+		throw new com.aoindustries.lang.NotImplementedException("TODO");
 	}
 
 	@Override
+	@SuppressWarnings("deprecation")
 	public Path createDirectory(Path path, int mode) {
 		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		throw new NotImplementedException("TODO");
+		throw new com.aoindustries.lang.NotImplementedException("TODO");
 	}
 }
