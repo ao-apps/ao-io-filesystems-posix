@@ -1,6 +1,6 @@
 /*
  * ao-io-filesystems-unix - Advanced filesystem utilities for Unix.
- * Copyright (C) 2015  AO Industries, Inc.
+ * Copyright (C) 2015, 2019  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,6 +22,7 @@
  */
 package com.aoindustries.io.filesystems.unix;
 
+import com.aoindustries.io.IoUtils;
 import com.aoindustries.io.filesystems.Path;
 import com.aoindustries.io.filesystems.RandomFailFileSystem;
 import com.aoindustries.io.unix.Stat;
@@ -66,8 +67,10 @@ public class RandomFailUnixFileSystem extends RandomFailFileSystem implements Un
 		this.unixFailureProbabilities = unixFailureProbabilities;
 	}
 
+	private static final Random fastRandom = new Random(IoUtils.bufferToLong(new SecureRandom().generateSeed(8)));
+
 	/**
-	 * Uses default probabilities and a SecureRandom source.
+	 * Uses default probabilities and a fast Random source.
 	 * 
 	 * @see SecureRandom
 	 */
@@ -75,7 +78,7 @@ public class RandomFailUnixFileSystem extends RandomFailFileSystem implements Un
 		this(
 			wrappedFileSystem,
 			new UnixFailureProbabilities() {},
-			new SecureRandom()
+			fastRandom
 		);
 	}
 
