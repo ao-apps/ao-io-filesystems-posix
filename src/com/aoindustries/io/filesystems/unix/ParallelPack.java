@@ -1,6 +1,6 @@
 /*
  * ao-io-filesystems-unix - Advanced filesystem utilities for Unix.
- * Copyright (C) 2009, 2010, 2011, 2013, 2015, 2018  AO Industries, Inc.
+ * Copyright (C) 2009, 2010, 2011, 2013, 2015, 2018, 2019  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,9 +22,9 @@
  */
 package com.aoindustries.io.filesystems.unix;
 
-import com.aoindustries.io.CompressedDataOutputStream;
 import com.aoindustries.io.FilesystemIterator;
 import com.aoindustries.io.FilesystemIteratorRule;
+import com.aoindustries.io.StreamableOutput;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.util.BufferManager;
@@ -243,14 +243,14 @@ public class ParallelPack {
 			// This is a mapping from device->inode->linkId
 			Map<Long,Map<Long,LinkAndCount>> deviceInodeIdMap = new HashMap<>();
 
-			CompressedDataOutputStream compressedOut = new CompressedDataOutputStream(out);
+			StreamableOutput streamOut = new StreamableOutput(out);
 			try {
 				// Header
-				for(int c=0, len=PackProtocol.HEADER.length(); c<len; c++) compressedOut.write(PackProtocol.HEADER.charAt(c));
+				for(int c=0, len=PackProtocol.HEADER.length(); c<len; c++) streamOut.write(PackProtocol.HEADER.charAt(c));
 				// Version
-				compressedOut.writeInt(PackProtocol.VERSION);
-				compressedOut.writeBoolean(compress);
-				if(compress) compressedOut = new CompressedDataOutputStream(new GZIPOutputStream(out, PackProtocol.BUFFER_SIZE));
+				streamOut.writeInt(PackProtocol.VERSION);
+				streamOut.writeBoolean(compress);
+				if(compress) streamOut = new StreamableOutput(new GZIPOutputStream(out, PackProtocol.BUFFER_SIZE));
 				// Reused in main loop
 				final StringBuilder SB = new StringBuilder();
 				final byte[] buffer = PackProtocol.BUFFER_SIZE==BufferManager.BUFFER_SIZE ? BufferManager.getBytes() : new byte[PackProtocol.BUFFER_SIZE];
@@ -290,17 +290,17 @@ public class ParallelPack {
 							// Handle this file
 							Stat stat = uf.getStat();
 							if(stat.isRegularFile()) {
-								compressedOut.writeByte(PackProtocol.REGULAR_FILE);
-								compressedOut.writeCompressedUTF(packPath, iteratorAndSlot.slot);
+								streamOut.writeByte(PackProtocol.REGULAR_FILE);
+								streamOut.writeCompressedUTF(packPath, iteratorAndSlot.slot);
 								int numLinks = stat.getNumberLinks();
 								if(numLinks==1) {
 									// No hard links
-									compressedOut.writeLong(0);
-									compressedOut.writeInt(stat.getUid());
-									compressedOut.writeInt(stat.getGid());
-									compressedOut.writeLong(stat.getMode());
-									compressedOut.writeLong(stat.getModifyTime());
-									writeFile(uf, compressedOut, buffer);
+									streamOut.writeLong(0);
+									streamOut.writeInt(stat.getUid());
+									streamOut.writeInt(stat.getGid());
+									streamOut.writeLong(stat.getMode());
+									streamOut.writeLong(stat.getModifyTime());
+									writeFile(uf, streamOut, buffer);
 								} else if(numLinks>1) {
 									// Has hard links
 									// Look for already found
@@ -311,7 +311,7 @@ public class ParallelPack {
 									LinkAndCount linkAndCount = inodeMap.get(inode);
 									if(linkAndCount != null) {
 										// Already sent, send the link ID and decrement our count
-										compressedOut.writeLong(linkAndCount.linkId);
+										streamOut.writeLong(linkAndCount.linkId);
 										if(--linkAndCount.linkCount<=0) {
 											inodeMap.remove(inode);
 											// This keeps memory tighter but can increase overhead by making many new maps:
@@ -320,49 +320,49 @@ public class ParallelPack {
 									} else {
 										// New file, send file data
 										long linkId = nextLinkId++;
-										compressedOut.writeLong(linkId);
-										compressedOut.writeInt(stat.getUid());
-										compressedOut.writeInt(stat.getGid());
-										compressedOut.writeLong(stat.getMode());
-										compressedOut.writeLong(stat.getModifyTime());
-										compressedOut.writeInt(numLinks);
-										writeFile(uf, compressedOut, buffer);
+										streamOut.writeLong(linkId);
+										streamOut.writeInt(stat.getUid());
+										streamOut.writeInt(stat.getGid());
+										streamOut.writeLong(stat.getMode());
+										streamOut.writeLong(stat.getModifyTime());
+										streamOut.writeInt(numLinks);
+										writeFile(uf, streamOut, buffer);
 										inodeMap.put(inode, new LinkAndCount(linkId, numLinks-1));
 									}
 								} else throw new IOException("Invalid link count: "+numLinks);
 							} else if(stat.isDirectory()) {
-								compressedOut.writeByte(PackProtocol.DIRECTORY);
-								compressedOut.writeCompressedUTF(packPath, iteratorAndSlot.slot);
-								compressedOut.writeInt(stat.getUid());
-								compressedOut.writeInt(stat.getGid());
-								compressedOut.writeLong(stat.getMode());
-								compressedOut.writeLong(stat.getModifyTime());
+								streamOut.writeByte(PackProtocol.DIRECTORY);
+								streamOut.writeCompressedUTF(packPath, iteratorAndSlot.slot);
+								streamOut.writeInt(stat.getUid());
+								streamOut.writeInt(stat.getGid());
+								streamOut.writeLong(stat.getMode());
+								streamOut.writeLong(stat.getModifyTime());
 							} else if(stat.isSymLink()) {
-								compressedOut.writeByte(PackProtocol.SYMLINK);
-								compressedOut.writeCompressedUTF(packPath, iteratorAndSlot.slot);
-								compressedOut.writeInt(stat.getUid());
-								compressedOut.writeInt(stat.getGid());
-								compressedOut.writeCompressedUTF(uf.readLink(), 63);
+								streamOut.writeByte(PackProtocol.SYMLINK);
+								streamOut.writeCompressedUTF(packPath, iteratorAndSlot.slot);
+								streamOut.writeInt(stat.getUid());
+								streamOut.writeInt(stat.getGid());
+								streamOut.writeCompressedUTF(uf.readLink(), 63);
 							} else if(stat.isBlockDevice()) {
-								compressedOut.writeByte(PackProtocol.BLOCK_DEVICE);
-								compressedOut.writeCompressedUTF(packPath, iteratorAndSlot.slot);
-								compressedOut.writeInt(stat.getUid());
-								compressedOut.writeInt(stat.getGid());
-								compressedOut.writeLong(stat.getMode());
-								compressedOut.writeLong(stat.getDeviceIdentifier());
+								streamOut.writeByte(PackProtocol.BLOCK_DEVICE);
+								streamOut.writeCompressedUTF(packPath, iteratorAndSlot.slot);
+								streamOut.writeInt(stat.getUid());
+								streamOut.writeInt(stat.getGid());
+								streamOut.writeLong(stat.getMode());
+								streamOut.writeLong(stat.getDeviceIdentifier());
 							} else if(stat.isCharacterDevice()) {
-								compressedOut.writeByte(PackProtocol.CHARACTER_DEVICE);
-								compressedOut.writeCompressedUTF(packPath, iteratorAndSlot.slot);
-								compressedOut.writeInt(stat.getUid());
-								compressedOut.writeInt(stat.getGid());
-								compressedOut.writeLong(stat.getMode());
-								compressedOut.writeLong(stat.getDeviceIdentifier());
+								streamOut.writeByte(PackProtocol.CHARACTER_DEVICE);
+								streamOut.writeCompressedUTF(packPath, iteratorAndSlot.slot);
+								streamOut.writeInt(stat.getUid());
+								streamOut.writeInt(stat.getGid());
+								streamOut.writeLong(stat.getMode());
+								streamOut.writeLong(stat.getDeviceIdentifier());
 							} else if(stat.isFifo()) {
-								compressedOut.writeByte(PackProtocol.FIFO);
-								compressedOut.writeCompressedUTF(packPath, iteratorAndSlot.slot);
-								compressedOut.writeInt(stat.getUid());
-								compressedOut.writeInt(stat.getGid());
-								compressedOut.writeLong(stat.getMode());
+								streamOut.writeByte(PackProtocol.FIFO);
+								streamOut.writeCompressedUTF(packPath, iteratorAndSlot.slot);
+								streamOut.writeInt(stat.getUid());
+								streamOut.writeInt(stat.getGid());
+								streamOut.writeLong(stat.getMode());
 							} else if(stat.isSocket()) {
 								throw new IOException("Unable to pack socket: "+uf.getPath());
 							}
@@ -382,10 +382,10 @@ public class ParallelPack {
 				} finally {
 					if(PackProtocol.BUFFER_SIZE==BufferManager.BUFFER_SIZE) BufferManager.release(buffer, false);
 				}
-				compressedOut.writeByte(PackProtocol.END);
+				streamOut.writeByte(PackProtocol.END);
 			} finally {
-				compressedOut.flush();
-				compressedOut.close();
+				streamOut.flush();
+				streamOut.close();
 			}
 			// TODO: If verbose, warn for any hard links that didn't all get packed
 		} finally {

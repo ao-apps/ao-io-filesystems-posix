@@ -1,6 +1,6 @@
 /*
  * ao-io-filesystems-unix - Advanced filesystem utilities for Unix.
- * Copyright (C) 2009, 2010, 2011, 2013, 2015  AO Industries, Inc.
+ * Copyright (C) 2009, 2010, 2011, 2013, 2015, 2019  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,7 +22,7 @@
  */
 package com.aoindustries.io.filesystems.unix;
 
-import com.aoindustries.io.CompressedDataInputStream;
+import com.aoindustries.io.StreamableInput;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.util.BufferManager;
@@ -207,18 +207,18 @@ public class ParallelUnpack {
 			verboseThread.start();
 		}
 		try {
-			CompressedDataInputStream compressedIn = new CompressedDataInputStream(in);
+			StreamableInput streamIn = new StreamableInput(in);
 			// Header
 			for(int c=0, len=PackProtocol.HEADER.length(); c<len; c++) {
-				int ch = compressedIn.read();
+				int ch = streamIn.read();
 				if(ch==-1) throw new EOFException("End of file while reading header");
 				if(ch!=PackProtocol.HEADER.charAt(c)) throw new IOException("ParallelPack header not found");
 			}
 			// Version
-			int version = compressedIn.readInt();
+			int version = streamIn.readInt();
 			if(version!=PackProtocol.VERSION) throw new IOException("Unsupported pack version "+version+", expecting version "+PackProtocol.VERSION);
-			boolean compress = compressedIn.readBoolean();
-			if(compress) compressedIn = new CompressedDataInputStream(new GZIPInputStream(in, PackProtocol.BUFFER_SIZE));
+			boolean compress = streamIn.readBoolean();
+			if(compress) streamIn = new StreamableInput(new GZIPInputStream(in, PackProtocol.BUFFER_SIZE));
 			// Reused in main loop
 			final StringBuilder SB = new StringBuilder();
 			final byte[] buffer = PackProtocol.BUFFER_SIZE == BufferManager.BUFFER_SIZE ? BufferManager.getBytes() : new byte[PackProtocol.BUFFER_SIZE];
@@ -230,9 +230,9 @@ public class ParallelUnpack {
 				try {
 					// Main loop
 					while(true) {
-						byte type = compressedIn.readByte();
+						byte type = streamIn.readByte();
 						if(type==PackProtocol.END) break;
-						String packPath = compressedIn.readCompressedUTF();
+						String packPath = streamIn.readCompressedUTF();
 						// Verbose output
 						if(verboseQueue != null) {
 							try {
@@ -279,17 +279,17 @@ public class ParallelUnpack {
 
 						// Handle this file
 						if(type==PackProtocol.REGULAR_FILE) {
-							long linkId = compressedIn.readLong();
+							long linkId = streamIn.readLong();
 							if(linkId == 0) {
 								// No hard links
-								int uid = compressedIn.readInt();
-								int gid = compressedIn.readInt();
-								long mode = compressedIn.readLong();
-								long modifyTime = compressedIn.readLong();
-								if(dryRun) skipFile(compressedIn, buffer);
+								int uid = streamIn.readInt();
+								int gid = streamIn.readInt();
+								long mode = streamIn.readLong();
+								long modifyTime = streamIn.readLong();
+								if(dryRun) skipFile(streamIn, buffer);
 								else {
 									if(ufStat.exists()) uf.deleteRecursive();
-									readFile(uf, compressedIn, buffer);
+									readFile(uf, streamIn, buffer);
 									uf.chown(uid, gid).setMode(mode);
 									ufStat = uf.getStat();
 									uf.utime(ufStat.getAccessTime(), modifyTime);
@@ -310,15 +310,15 @@ public class ParallelUnpack {
 									if(--pathAndCount.linkCount<=0) linkPathAndCounts.remove(linkIdL);
 								} else {
 									// New file, receive file data
-									int uid = compressedIn.readInt();
-									int gid = compressedIn.readInt();
-									long mode = compressedIn.readLong();
-									long modifyTime = compressedIn.readLong();
-									int numLinks = compressedIn.readInt();
-									if(dryRun) skipFile(compressedIn, buffer);
+									int uid = streamIn.readInt();
+									int gid = streamIn.readInt();
+									long mode = streamIn.readLong();
+									long modifyTime = streamIn.readLong();
+									int numLinks = streamIn.readInt();
+									if(dryRun) skipFile(streamIn, buffer);
 									else {
 										if(ufStat.exists()) uf.deleteRecursive();
-										readFile(uf, compressedIn, buffer);
+										readFile(uf, streamIn, buffer);
 										uf.chown(uid, gid).setMode(mode);
 										ufStat = uf.getStat();
 										uf.utime(ufStat.getAccessTime(), modifyTime);
@@ -327,10 +327,10 @@ public class ParallelUnpack {
 								}
 							}
 						} else if(type==PackProtocol.DIRECTORY) {
-							int uid = compressedIn.readInt();
-							int gid = compressedIn.readInt();
-							long mode = compressedIn.readLong();
-							long modifyTime = compressedIn.readLong();
+							int uid = streamIn.readInt();
+							int gid = streamIn.readInt();
+							long mode = streamIn.readLong();
+							long modifyTime = streamIn.readLong();
 							if(!dryRun) {
 								if(ufStat.exists()) {
 									if(!ufStat.isDirectory()) {
@@ -350,35 +350,35 @@ public class ParallelUnpack {
 							}
 							mtimeStack.push(new PathAndModifyTime(packPath+'/', modifyTime));
 						} else if(type==PackProtocol.SYMLINK) {
-							int uid = compressedIn.readInt();
-							int gid = compressedIn.readInt();
-							String target = compressedIn.readCompressedUTF();
+							int uid = streamIn.readInt();
+							int gid = streamIn.readInt();
+							String target = streamIn.readCompressedUTF();
 							if(!dryRun) {
 								if(ufStat.exists()) uf.deleteRecursive();
 								uf.symLink(target).chown(uid, gid);
 							}
 						} else if(type==PackProtocol.BLOCK_DEVICE) {
-							int uid = compressedIn.readInt();
-							int gid = compressedIn.readInt();
-							long mode = compressedIn.readLong();
-							long deviceIdentifier = compressedIn.readLong();
+							int uid = streamIn.readInt();
+							int gid = streamIn.readInt();
+							long mode = streamIn.readLong();
+							long deviceIdentifier = streamIn.readLong();
 							if(!dryRun) {
 								if(ufStat.exists()) uf.deleteRecursive();
 								uf.mknod(mode|UnixFile.IS_BLOCK_DEVICE, deviceIdentifier).chown(uid, gid);
 							}
 						} else if(type==PackProtocol.CHARACTER_DEVICE) {
-							int uid = compressedIn.readInt();
-							int gid = compressedIn.readInt();
-							long mode = compressedIn.readLong();
-							long deviceIdentifier = compressedIn.readLong();
+							int uid = streamIn.readInt();
+							int gid = streamIn.readInt();
+							long mode = streamIn.readLong();
+							long deviceIdentifier = streamIn.readLong();
 							if(!dryRun) {
 								if(ufStat.exists()) uf.deleteRecursive();
 								uf.mknod(mode|UnixFile.IS_CHARACTER_DEVICE, deviceIdentifier).chown(uid, gid);
 							}
 						} else if(type==PackProtocol.FIFO) {
-							int uid = compressedIn.readInt();
-							int gid = compressedIn.readInt();
-							long mode = compressedIn.readLong();
+							int uid = streamIn.readInt();
+							int gid = streamIn.readInt();
+							long mode = streamIn.readLong();
 							if(!dryRun) {
 								if(ufStat.exists()) uf.deleteRecursive();
 								uf.mkfifo(mode).chown(uid, gid);
