@@ -24,7 +24,7 @@ package com.aoindustries.io.filesystems.unix;
 
 import com.aoindustries.io.FilesystemIterator;
 import com.aoindustries.io.FilesystemIteratorRule;
-import com.aoindustries.io.StreamableOutput;
+import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.util.BufferManager;
