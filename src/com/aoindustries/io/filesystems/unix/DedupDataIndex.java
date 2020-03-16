@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 by AO Industries, Inc.,
+ * Copyright 2015, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -10,7 +10,7 @@ import com.aoindustries.io.filesystems.FileSystem;
 import com.aoindustries.io.filesystems.Path;
 import com.aoindustries.io.filesystems.PathIterator;
 import com.aoindustries.io.unix.Stat;
-import com.aoindustries.util.StringUtility;
+import com.aoindustries.lang.Strings;
 import java.io.IOException;
 import java.nio.file.FileSystemException;
 import java.nio.file.NoSuchFileException;
@@ -332,7 +332,7 @@ public class DedupDataIndex {
 		int pos = 0;
 		do {
 			shift -= HEX_BITS;
-			total |= StringUtility.getHex(hex.charAt(pos++)) << shift;
+			total |= Strings.getHex(hex.charAt(pos++)) << shift;
 		} while(shift > 0);
 		return total;
 	}
@@ -352,7 +352,7 @@ public class DedupDataIndex {
 			int shift = HEX_BITS * DIRECTORY_HASH_CHARACTERS;
 			do {
 				shift -= HEX_BITS;
-				name.append(StringUtility.getHexChar(hashDir >>> shift));
+				name.append(Strings.getHexChar(hashDir >>> shift));
 			} while(shift > 0);
 			this.lockDirName = name.toString();
 			this.lockPath = new Path(
