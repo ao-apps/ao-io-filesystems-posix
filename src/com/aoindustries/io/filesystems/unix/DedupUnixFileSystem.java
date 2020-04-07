@@ -1,6 +1,6 @@
 /*
  * ao-io-filesystems-unix - Advanced filesystem utilities for Unix.
- * Copyright (C) 2015, 2019  AO Industries, Inc.
+ * Copyright (C) 2015, 2019, 2020  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -26,6 +26,7 @@ import com.aoindustries.io.filesystems.FileSystemWrapper;
 import com.aoindustries.io.filesystems.Path;
 import com.aoindustries.io.unix.Stat;
 import java.io.IOException;
+import org.apache.commons.lang3.NotImplementedException;
 
 /**
  * De-duplicates data chunks on the fly.
@@ -67,17 +68,15 @@ public class DedupUnixFileSystem extends FileSystemWrapper implements UnixFileSy
 	}
 
 	@Override
-	@SuppressWarnings("deprecation")
 	public Path createFile(Path path) throws IOException {
 		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		throw new com.aoindustries.lang.NotImplementedException("TODO");
+		throw new NotImplementedException("TODO");
 	}
 
 	@Override
-	@SuppressWarnings("deprecation")
 	public Path createFile(Path path, int mode) throws IOException {
 		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		throw new com.aoindustries.lang.NotImplementedException("TODO");
+		throw new NotImplementedException("TODO");
 	}
 
 	/**
