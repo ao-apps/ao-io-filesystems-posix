@@ -73,7 +73,14 @@ along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses />
 								<link>https://aoindustries.com/ao-lang/apidocs/</link>
 								<link>https://aoindustries.com/aocode-public/apidocs/</link>
 								<link>https://commons.apache.org/proper/commons-lang/javadocs/api-${org.apache.commons.commons-lang3.version}/</link>
+								<!-- Javadoc-only -->
+								<link>https://aoindustries.com/aoserv/daemon-client/apidocs/</link>
 							</links>
+							<additionalDependencies>
+								<additionalDependency>
+									<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId><version>1.84.0${POST-SNAPSHOT}</version>
+								</additionalDependency>
+							</additionalDependencies>
 						</configuration>
 					</plugin>
 				</plugins>

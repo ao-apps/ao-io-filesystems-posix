@@ -1,6 +1,6 @@
 /*
  * ao-io-filesystems-unix - Advanced filesystem utilities for Unix.
- * Copyright (C) 2015  AO Industries, Inc.
+ * Copyright (C) 2015, 2020  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -29,6 +29,7 @@ import com.aoindustries.io.filesystems.Path;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 
 /**
  * The most basic layer of what Unix file systems have in common.
@@ -78,7 +79,7 @@ public interface UnixFileSystem extends FileSystem {
 	}
 
 	/**
-	 * @path  Must be from this file system.
+	 * @param  path  Must be from this file system.
 	 */
 	Stat stat(Path path) throws IOException;
 

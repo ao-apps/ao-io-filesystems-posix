@@ -164,7 +164,7 @@ import java.util.logging.Logger;
  * TODO: Keep track of number of in-JVM locks, only release file lock when all JVM locks released.
  * </p>
  *
- * @see  AOServDaemonProtocol#FAILOVER_FILE_REPLICATION_CHUNK_SIZE
+ * @see  com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol#FAILOVER_FILE_REPLICATION_CHUNK_SIZE
  *
  * @author  AO Industries, Inc.
  */

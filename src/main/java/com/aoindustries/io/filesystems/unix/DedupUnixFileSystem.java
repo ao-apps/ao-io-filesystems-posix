@@ -33,8 +33,8 @@ import org.apache.commons.lang3.NotImplementedException;
  *
  * <pre>
  * real name (empty file, small file, or possible full/partially restored large file)
- * &lt;A&lt;O&lt;DEDUP&gt;O&gt;A&gt;_# -> symbolic linked to real name
- * &lt;A&lt;O&lt;DEDUP&gt;O&gt;A&gt;_#_chunk#_md5_size[.gz] -> hard linked to index
+ * &lt;A&lt;O&lt;DEDUP&gt;O&gt;A&gt;_# → symbolic linked to real name
+ * &lt;A&lt;O&lt;DEDUP&gt;O&gt;A&gt;_#_chunk#_md5_size[.gz] → hard linked to index
  * </pre>
  * <p>
  * Renaming a file requires to rename both the file and the one symbolic link to the file.
