@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ao-io-filesystems-posix - POSIX filesystem abstraction.
+Copyright (C) 2020  AO Industries, Inc.
+    support@aoindustries.com
+    7262 Bull Pen Cir
+    Mobile, AL 36695
+
+This file is part of ao-io-filesystems-posix.
+
+ao-io-filesystems-posix is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+ao-io-filesystems-posix is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses />.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>com.aoindustries</groupId><artifactId>ao-oss-parent</artifactId><version>1.7.2-POST-SNAPSHOT</version>
+		<relativePath>../ao-oss-parent/pom.xml</relativePath>
+	</parent>
+
+	<groupId>com.aoindustries</groupId><artifactId>ao-io-filesystems-posix</artifactId><version>0.1.0-SNAPSHOT</version>
+	<packaging>bundle</packaging>
+
+	<properties>
+		<shortTitle>POSIX</shortTitle>
+		<javadoc.breadcrumbs><![CDATA[<a target="_top" href="https://aoindustries.com/ao-io-filesystems/">AO IO Filesystems</a>
+/ <a target="_top" href="${project.url}">${shortTitle}</a>]]></javadoc.breadcrumbs>
+		<!-- Dependencies -->
+		<org.apache.commons.commons-lang3.version>3.10</org.apache.commons.commons-lang3.version>
+	</properties>
+
+	<name>AO IO Filesystems POSIX</name>
+	<url>https://aoindustries.com/ao-io-filesystems/posix/</url>
+	<description>POSIX filesystem abstraction.</description>
+	<inceptionYear>2015</inceptionYear>
+
+	<scm>
+		<connection>scm:git:git://github.com/aoindustries/ao-io-filesystems-posix.git</connection>
+		<developerConnection>scm:git:git@github.com:aoindustries/ao-io-filesystems-posix.git</developerConnection>
+		<url>https://github.com/aoindustries/ao-io-filesystems-posix</url>
+		<tag>HEAD</tag>
+	</scm>
+
+	<issueManagement>
+		<system>GitHub Issues</system>
+		<url>https://github.com/aoindustries/ao-io-filesystems-posix/issues</url>
+	</issueManagement>
+
+	<profiles>
+		<profile>
+			<id>release</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId><artifactId>maven-javadoc-plugin</artifactId>
+						<configuration>
+							<links>
+								<link>${javadoc.link.javase}</link>
+								<!-- Direct -->
+								<link>https://aoindustries.com/ao-io-filesystems/apidocs/</link>
+								<link>https://aoindustries.com/ao-io-unix/apidocs/</link>
+								<link>https://aoindustries.com/ao-lang/apidocs/</link>
+								<link>https://aoindustries.com/aocode-public/apidocs/</link>
+								<link>https://commons.apache.org/proper/commons-lang/javadocs/api-${org.apache.commons.commons-lang3.version}/</link>
+							</links>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+
+	<dependencyManagement>
+		<dependencies>
+			<!-- Direct -->
+			<dependency>
+				<groupId>com.aoindustries</groupId><artifactId>ao-io-filesystems</artifactId><version>0.1.0-SNAPSHOT<!-- ${POST-SNAPSHOT} --></version>
+			</dependency>
+			<dependency>
+				<groupId>com.aoindustries</groupId><artifactId>ao-io-unix</artifactId><version>3.0.1${POST-SNAPSHOT}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.aoindustries</groupId><artifactId>ao-lang</artifactId><version>4.1.0${POST-SNAPSHOT}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.aoindustries</groupId><artifactId>aocode-public</artifactId><version>4.0.0${POST-SNAPSHOT}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId><version>${org.apache.commons.commons-lang3.version}</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+	<dependencies>
+		<!-- Direct -->
+		<dependency>
+			<groupId>com.aoindustries</groupId><artifactId>ao-io-filesystems</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.aoindustries</groupId><artifactId>ao-io-unix</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.aoindustries</groupId><artifactId>ao-lang</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.aoindustries</groupId><artifactId>aocode-public</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId>
+		</dependency>
+	</dependencies>
+</project>
