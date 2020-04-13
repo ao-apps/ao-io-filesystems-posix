@@ -455,6 +455,7 @@ public class DedupDataIndex {
 					PathIterator list = null;
 					try {
 						try (FileLock lock = hashDirLock.lock()) {
+							assert lock != null; // Java 9: fix: Avoid warning: "auto-closeable resource lock is never referenced in body of corresponding try statement"
 							list = fileSystem.list(hashDirPath);
 						} catch(NoSuchFileException | NotDirectoryException e) {
 							// These are OK since we're working on a live file system
@@ -467,6 +468,7 @@ public class DedupDataIndex {
 								// Skip lock files
 								if(!LOCK_FILE_NAME.equals(filename)) {
 									try (FileLock lock = hashDirLock.lock()) {
+										assert lock != null; // Java 9: fix: Avoid warning: "auto-closeable resource lock is never referenced in body of corresponding try statement"
 										Stat stat = fileSystem.stat(file);
 										// Must still exist
 										if(stat.exists()) {
