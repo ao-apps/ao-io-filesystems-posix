@@ -124,6 +124,12 @@ along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses />
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId><artifactId>maven-javadoc-plugin</artifactId>
 						<configuration>
+							<additionalDependencies>
+								<!-- Javadoc-only -->
+								<additionalDependency>
+									<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId><version>1.84.0${POST-SNAPSHOT}</version>
+								</additionalDependency>
+							</additionalDependencies>
 							<offlineLinks>
 								<offlineLink>
 									<url>${javadoc.link.javase}</url>
