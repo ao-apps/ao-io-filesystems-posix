@@ -64,13 +64,32 @@ along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses />
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId><artifactId>maven-dependency-plugin</artifactId>
+						<dependencies>
+							<dependency>
+								<groupId>com.aoindustries</groupId><artifactId>ao-javadoc-offline</artifactId><version>1.0.0-SNAPSHOT<!-- ${POST-SNAPSHOT} --></version>
+							</dependency>
+							<!-- Javadoc-only -->
+							<dependency>
+								<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId><version>1.84.0${POST-SNAPSHOT}</version>
+							</dependency>
+						</dependencies>
 						<executions>
 							<execution>
-								<id>unpack.offlinkLinks</id>
-								<phase>generate-sources</phase>
-								<goals><goal>unpack</goal></goals>
+								<id>unpack.offlinkLinks</id><phase>generate-sources</phase><goals><goal>unpack</goal></goals>
 								<configuration>
+									<silent>true</silent>
 									<artifactItems>
+										<artifactItem>
+											<groupId>com.aoindustries</groupId><artifactId>ao-javadoc-offline</artifactId><version>1.0.0-SNAPSHOT<!-- ${POST-SNAPSHOT} --></version>
+											<includes>**/element-list, **/package-list</includes>
+											<outputDirectory>${project.build.directory}/offlineLinks</outputDirectory>
+										</artifactItem>
+										<!-- Javadoc-only -->
+										<artifactItem>
+											<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId><version>1.84.0${POST-SNAPSHOT}</version>
+											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
+											<outputDirectory>${project.build.directory}/offlineLinks/com.aoindustries/aoserv-daemon-client</outputDirectory>
+										</artifactItem>
 										<!-- Direct -->
 										<artifactItem>
 											<groupId>com.aoindustries</groupId><artifactId>ao-io-filesystems</artifactId>
@@ -97,12 +116,6 @@ along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses />
 											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/org.apache.commons/commons-lang3</outputDirectory>
 										</artifactItem>
-										<!-- Javadoc-only -->
-										<artifactItem>
-											<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId><version>1.84.0${POST-SNAPSHOT}</version>
-											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
-											<outputDirectory>${project.build.directory}/offlineLinks/com.aoindustries/aoserv-daemon-client</outputDirectory>
-										</artifactItem>
 									</artifactItems>
 								</configuration>
 							</execution>
@@ -111,18 +124,16 @@ along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses />
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId><artifactId>maven-javadoc-plugin</artifactId>
 						<configuration>
-							<links>
-								<link>${javadoc.link.javase}</link>
-								<!-- Direct -->
-								<!-- offlineLink: <groupId>com.aoindustries</groupId><artifactId>ao-io-filesystems</artifactId> -->
-								<!-- offlineLink: <groupId>com.aoindustries</groupId><artifactId>ao-io-unix</artifactId> -->
-								<!-- offlineLink: <groupId>com.aoindustries</groupId><artifactId>ao-lang</artifactId> -->
-								<!-- offlineLink: <groupId>com.aoindustries</groupId><artifactId>aocode-public</artifactId> -->
-								<!-- offlineLink: <groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId> -->
-								<!-- Javadoc-only -->
-								<!-- offlineLink: <groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId> -->
-							</links>
 							<offlineLinks>
+								<offlineLink>
+									<url>${javadoc.link.javase}</url>
+									<location>${project.build.directory}/offlineLinks/com/aoindustries/javadoc/offline/javase/${javase.release}</location>
+								</offlineLink>
+								<!-- Javadoc-only -->
+								<offlineLink>
+									<url>https://aoindustries.com/aoserv/daemon/client/apidocs/</url>
+									<location>${project.build.directory}/offlineLinks/com.aoindustries/aoserv-daemon-client</location>
+								</offlineLink>
 								<!-- Direct -->
 								<offlineLink>
 									<url>https://aoindustries.com/ao-io-filesystems/apidocs/</url>
@@ -144,17 +155,7 @@ along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses />
 									<url>https://commons.apache.org/proper/commons-lang/javadocs/api-${commons-lang3.version}/</url>
 									<location>${project.build.directory}/offlineLinks/org.apache.commons/commons-lang3</location>
 								</offlineLink>
-								<!-- Javadoc-only -->
-								<offlineLink>
-									<url>https://aoindustries.com/aoserv/daemon/client/apidocs/</url>
-									<location>${project.build.directory}/offlineLinks/com.aoindustries/aoserv-daemon-client</location>
-								</offlineLink>
 							</offlineLinks>
-							<additionalDependencies>
-								<additionalDependency>
-									<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId><version>1.84.0${POST-SNAPSHOT}</version>
-								</additionalDependency>
-							</additionalDependencies>
 						</configuration>
 					</plugin>
 				</plugins>
