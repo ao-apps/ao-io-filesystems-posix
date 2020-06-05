@@ -132,10 +132,6 @@ along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses />
 						<groupId>org.apache.maven.plugins</groupId><artifactId>maven-javadoc-plugin</artifactId>
 						<configuration>
 							<offlineLinks>
-								<offlineLink>
-									<url>${javadoc.link.javase}</url>
-									<location>${project.build.directory}/offlineLinks/com/aoindustries/javadoc/offline/javase/${javase.release}</location>
-								</offlineLink>
 								<!-- Javadoc-only -->
 								<offlineLink>
 									<url>https://aoindustries.com/aoserv/daemon/client/apidocs/</url>
@@ -161,6 +157,11 @@ along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses />
 								<offlineLink>
 									<url>https://commons.apache.org/proper/commons-lang/javadocs/api-${commons-lang3.version}/</url>
 									<location>${project.build.directory}/offlineLinks/org.apache.commons/commons-lang3</location>
+								</offlineLink>
+								<!-- Java SE -->
+								<offlineLink>
+									<url>${javadoc.link.javase}</url>
+									<location>${project.build.directory}/offlineLinks/com/aoindustries/javadoc/offline/javase/${javase.release}</location>
 								</offlineLink>
 							</offlineLinks>
 						</configuration>
