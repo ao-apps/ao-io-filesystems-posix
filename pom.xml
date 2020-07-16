@@ -65,7 +65,7 @@ along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses />
 					<additionalDependencies>
 						<!-- Javadoc-only -->
 						<additionalDependency>
-							<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId><version>1.84.0${POST-SNAPSHOT}</version>
+							<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId><version>1.84.11-SNAPSHOT<!-- ${POST-SNAPSHOT} --></version>
 						</additionalDependency>
 					</additionalDependencies>
 				</configuration>
@@ -83,7 +83,7 @@ along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses />
 						<dependencies>
 							<!-- Javadoc-only -->
 							<dependency>
-								<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId><version>1.84.0${POST-SNAPSHOT}</version>
+								<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId><version>1.84.11-SNAPSHOT<!-- ${POST-SNAPSHOT} --></version>
 							</dependency>
 						</dependencies>
 						<executions>
@@ -93,7 +93,7 @@ along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses />
 									<artifactItems>
 										<!-- Javadoc-only -->
 										<artifactItem>
-											<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId><version>1.84.0${POST-SNAPSHOT}</version>
+											<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId><version>1.84.11-SNAPSHOT<!-- ${POST-SNAPSHOT} --></version>
 											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/com.aoindustries/aoserv-daemon-client</outputDirectory>
 										</artifactItem>
