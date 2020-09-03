@@ -1,6 +1,6 @@
 /*
  * ao-io-filesystems-unix - Advanced filesystem utilities for Unix.
- * Copyright (C) 2009, 2010, 2011, 2013, 2015, 2019  AO Industries, Inc.
+ * Copyright (C) 2009, 2010, 2011, 2013, 2015, 2019, 2020  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -75,6 +75,7 @@ public class ParallelUnpack {
 	/**
 	 * Unpacks multiple directories in parallel (but not concurrently).
 	 */
+	@SuppressWarnings({"UseOfSystemOutOrSystemErr", "AssignmentToForLoopParameter"})
 	public static void main(String[] args) {
 		if(args.length == 0) {
 			System.err.println("Usage: "+ParallelUnpack.class.getName()+" [-d root] [-l] [-h host] [-p port] [-n] [-v] [--] path");
@@ -148,7 +149,7 @@ public class ParallelUnpack {
 		}
 	}
 
-	static class PathAndCount {
+	private static class PathAndCount {
 		final String path;
 		int linkCount;
 		PathAndCount(String path, int linkCount) {
@@ -422,7 +423,9 @@ public class ParallelUnpack {
 
 	private static void skipFile(DataInput in, byte[] buffer) throws IOException {
 		int count;
-		while((count=in.readShort()) != -1) in.readFully(buffer, 0, count);
+		while((count = in.readShort()) != -1) {
+			in.readFully(buffer, 0, count);
+		}
 	}
 
 	private static void readFile(UnixFile uf, DataInput in, byte[] buffer) throws IOException {

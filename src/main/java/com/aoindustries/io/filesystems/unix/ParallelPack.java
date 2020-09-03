@@ -1,6 +1,6 @@
 /*
  * ao-io-filesystems-unix - Advanced filesystem utilities for Unix.
- * Copyright (C) 2009, 2010, 2011, 2013, 2015, 2018, 2019  AO Industries, Inc.
+ * Copyright (C) 2009, 2010, 2011, 2013, 2015, 2018, 2019, 2020  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -90,6 +90,7 @@ public class ParallelPack {
 	/**
 	 * Packs multiple directories in parallel (but not concurrently).
 	 */
+	@SuppressWarnings({"UseOfSystemOutOrSystemErr", "AssignmentToForLoopParameter"})
 	public static void main(String[] args) {
 		if(args.length == 0) {
 			System.err.println("Usage: "+ParallelPack.class.getName()+" [-d root] [-h host] [-p port] [-v] [--] path {path}");
@@ -146,7 +147,7 @@ public class ParallelPack {
 		}
 	}
 
-	static class LinkAndCount {
+	private static class LinkAndCount {
 		final long linkId;
 		int linkCount;
 		LinkAndCount(long linkId, int linkCount) {
@@ -246,7 +247,9 @@ public class ParallelPack {
 			StreamableOutput streamOut = new StreamableOutput(out);
 			try {
 				// Header
-				for(int c=0, len=PackProtocol.HEADER.length(); c<len; c++) streamOut.write(PackProtocol.HEADER.charAt(c));
+				for(int c = 0, len = PackProtocol.HEADER.length(); c < len; c++) {
+					streamOut.write(PackProtocol.HEADER.charAt(c));
+				}
 				// Version
 				streamOut.writeInt(PackProtocol.VERSION);
 				streamOut.writeBoolean(compress);

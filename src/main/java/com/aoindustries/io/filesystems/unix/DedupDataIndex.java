@@ -454,6 +454,7 @@ public class DedupDataIndex {
 	 * @param  quick  When true, performs a quick pass to clean orphaned data
 	 *                only, but does not verify MD5 sums.
 	 */
+	@SuppressWarnings("CallToThreadYield")
 	public void verify(boolean quick) throws IOException {
 		try (PathIterator dataIndexIter = fileSystem.list(dataIndexDir)) {
 			while(dataIndexIter.hasNext()) {
