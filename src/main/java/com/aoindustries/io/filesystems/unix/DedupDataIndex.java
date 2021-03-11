@@ -1,6 +1,6 @@
 /*
  * ao-io-filesystems-unix - Advanced filesystem utilities for Unix.
- * Copyright (C) 2015, 2020  AO Industries, Inc.
+ * Copyright (C) 2015, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -290,7 +290,7 @@ public class DedupDataIndex {
 		}
 	}
 
-	private static final Map<InstanceKey,DedupDataIndex> instances = new HashMap<>();
+	private static final Map<InstanceKey, DedupDataIndex> instances = new HashMap<>();
 
 	/**
 	 * Gets the index for the given index directory.

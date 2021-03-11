@@ -1,6 +1,6 @@
 /*
  * ao-io-filesystems-unix - Advanced filesystem utilities for Unix.
- * Copyright (C) 2009, 2010, 2011, 2013, 2015, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2009, 2010, 2011, 2013, 2015, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -175,7 +175,7 @@ public class ParallelPack {
 		// The set of next files is kept in key order so that it can scale with O(n*log(n)) for larger numbers of directories
 		// as opposed to O(n^2) for a list.  This is similar to the fix for AWStats logresolvemerge provided by Dan Armstrong
 		// a couple of years ago.
-		final Map<String,List<FilesystemIteratorAndSlot>> nextFiles = new TreeMap<>(
+		final Map<String, List<FilesystemIteratorAndSlot>> nextFiles = new TreeMap<>(
 			(String S1, String S2) -> {
 				// Make sure directories are sorted after their directory contents
 				int diff = S1.compareTo(S2);
@@ -187,13 +187,13 @@ public class ParallelPack {
 		);
 		{
 			int nextSlot = 0;
-			final Map<String,FilesystemIteratorRule> prefixRules = Collections.emptyMap();
+			final Map<String, FilesystemIteratorRule> prefixRules = Collections.emptyMap();
 			for(UnixFile directory : directories) {
 				Stat stat = directory.getStat();
 				if(!stat.exists()) throw new IOException("Directory not found: "+directory.getPath());
 				if(!stat.isDirectory()) throw new IOException("Not a directory: "+directory.getPath());
 				String path = directory.getFile().getCanonicalPath();
-				Map<String,FilesystemIteratorRule> rules = Collections.singletonMap(path, FilesystemIteratorRule.OK);
+				Map<String, FilesystemIteratorRule> rules = Collections.singletonMap(path, FilesystemIteratorRule.OK);
 				FilesystemIterator iterator = new FilesystemIterator(rules, prefixRules, path, true, true);
 				File nextFile = iterator.getNextFile();
 				if(nextFile != null) {
@@ -242,7 +242,7 @@ public class ParallelPack {
 			// Hard link management
 			long nextLinkId = 1; // LinkID of 0 is reserved for no link
 			// This is a mapping from device->inode->linkId
-			Map<Long,Map<Long,LinkAndCount>> deviceInodeIdMap = new HashMap<>();
+			Map<Long, Map<Long, LinkAndCount>> deviceInodeIdMap = new HashMap<>();
 
 			StreamableOutput streamOut = new StreamableOutput(out);
 			try {
@@ -309,7 +309,7 @@ public class ParallelPack {
 									// Look for already found
 									Long device = stat.getDevice();
 									Long inode = stat.getInode();
-									Map<Long,LinkAndCount> inodeMap = deviceInodeIdMap.get(device);
+									Map<Long, LinkAndCount> inodeMap = deviceInodeIdMap.get(device);
 									if(inodeMap == null) deviceInodeIdMap.put(device, inodeMap = new HashMap<>());
 									LinkAndCount linkAndCount = inodeMap.get(inode);
 									if(linkAndCount != null) {
