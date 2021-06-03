@@ -22,48 +22,43 @@ You should have received a copy of the GNU Lesser General Public License
 along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses />.
 -->
 <jsp:root
-	xmlns:ao="https://aoindustries.com/ao-taglib/"
-	xmlns:c="http://java.sun.com/jsp/jstl/core"
-	xmlns:changelog="https://semanticcms.com/changelog/taglib/"
+	xmlns:ao="https://oss.aoapps.com/taglib/"
 	xmlns:core="https://semanticcms.com/core/taglib/"
-	xmlns:fn="http://java.sun.com/jsp/jstl/functions"
 	xmlns:jsp="http://java.sun.com/JSP/Page"
+	xmlns:section="https://semanticcms.com/section/taglib/"
 	version="2.1"
 >
 	<jsp:directive.page language="java" pageEncoding="UTF-8" />
 	<jsp:directive.page session="false" />
 	<core:page
-		title="@{documented.name} Changelog"
-		shortTitle="Changelog"
-		tocLevels="1"
+		title="@{documented.name}"
+		description="@{documented.description}"
 		datePublished="2020-04-12T21:26:47-05:00"
-		dateModified="2021-05-25T18:54:28-05:00"
 	>
-		<c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
-			<changelog:release
-				projectName="@{documented.name}"
-				version="@{project.version}"
-				groupId="@{project.groupId}"
-				artifactId="@{documented.artifactId}"
-				scmUrl="@{project.scm.url}"
-			>
-				<ul>
-					<li>Updated dependencies.</li>
-				</ul>
-			</changelog:release>
-		</c:if>
-
-		<changelog:release
-			projectName="@{documented.name}"
-			version="0.1.0"
-			datePublished="2020-04-26T00:02:53-05:00"
-			groupId="@{project.groupId}"
-			artifactId="@{documented.artifactId}"
-			scmUrl="@{project.scm.url}"
-		>
+		<core:child page="changelog.jspx" />
+		<core:child page="apidocs/index.jspx" />
+		<header>
+			<ao:include
+				page="/ao-badges/badges.inc.jspx"
+				arg.projectStatus="alpha"
+				arg.managementStatus="preview"
+				arg.packagingStatus="developmental"
+				arg.javaseVersion="@{documented.javase.version}"
+				arg.semanticVersioning="2.0.0"
+				arg.license="lgpl-3.0"
+			/>
+		</header>
+		<p>
+			@{documented.description}
+		</p>
+		<section:nav label="Project Links">
 			<ul>
-				<li>Project moved to GitHub and Maven.</li>
+				<li><core:link page="index.jspx">Project Home</core:link></li>
+				<li><core:link page="changelog.jspx">Changelog</core:link></li>
+				<li><core:link page="apidocs/index.jspx">API Docs</core:link></li>
+				<li><ao:a href="https://search.maven.org/artifact/${ao:encodeURIComponent('@{project.groupId}')}/${ao:encodeURIComponent('@{documented.artifactId}')}">Maven Central Repository</ao:a></li>
+				<li><ao:a href="@{project.scm.url}">GitHub</ao:a></li>
 			</ul>
-		</changelog:release>
+		</section:nav>
 	</core:page>
 </jsp:root>
