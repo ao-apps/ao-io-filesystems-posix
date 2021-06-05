@@ -1,31 +1,31 @@
 /*
- * ao-io-filesystems-unix - Advanced filesystem utilities for Unix.
+ * ao-io-filesystems-posix - POSIX filesystem abstraction.
  * Copyright (C) 2009, 2010, 2011, 2013, 2015, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
  *
- * This file is part of ao-io-filesystems-unix.
+ * This file is part of ao-io-filesystems-posix.
  *
- * ao-io-filesystems-unix is free software: you can redistribute it and/or modify
+ * ao-io-filesystems-posix is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * ao-io-filesystems-unix is distributed in the hope that it will be useful,
+ * ao-io-filesystems-posix is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with ao-io-filesystems-unix.  If not, see <http://www.gnu.org/licenses/>.
+ * along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.aoindustries.io.filesystems.unix;
+package com.aoapps.io.filesystems.posix;
 
-import com.aoindustries.io.stream.StreamableInput;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.util.BufferManager;
+import com.aoapps.hodgepodge.io.stream.StreamableInput;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
+import com.aoapps.lang.util.BufferManager;
 import java.io.DataInput;
 import java.io.EOFException;
 import java.io.FileOutputStream;
@@ -171,7 +171,7 @@ public class ParallelUnpack {
 	 * Unpacks from the provided output stream.  The stream is flushed but not closed.
 	 */
 	public static void parallelUnpack(String path, InputStream in, final PrintStream verboseOutput, boolean dryRun, boolean force) throws IOException {
-		final UnixFile destination = new UnixFile(path);
+		final PosixFile destination = new PosixFile(path);
 		Stat destinationStat = destination.getStat();
 		if(!destinationStat.exists()) throw new IOException("Directory not found: "+destination.getPath());
 		if(!destinationStat.isDirectory()) throw new IOException("Not a directory: "+destination.getPath());
@@ -262,7 +262,7 @@ public class ParallelUnpack {
 								PathAndModifyTime pathAndMod = mtimeStack.peek();
 								if(packPath.startsWith(pathAndMod.path)) break;
 								SB.setLength(0);
-								UnixFile uf = new UnixFile(SB.append(path).append(pathAndMod.path).toString());
+								PosixFile uf = new PosixFile(SB.append(path).append(pathAndMod.path).toString());
 								uf.utime(
 									uf.getStat().getAccessTime(),
 									pathAndMod.modifyTime
@@ -272,7 +272,7 @@ public class ParallelUnpack {
 						}
 
 						// Make sure doesn't exist if not in force mode
-						UnixFile uf = new UnixFile(fullPath);
+						PosixFile uf = new PosixFile(fullPath);
 						Stat ufStat = uf.getStat();
 						if(!force && ufStat.exists()) throw new IOException("Exists: "+fullPath);
 
@@ -363,7 +363,7 @@ public class ParallelUnpack {
 							long deviceIdentifier = streamIn.readLong();
 							if(!dryRun) {
 								if(ufStat.exists()) uf.deleteRecursive();
-								uf.mknod(mode|UnixFile.IS_BLOCK_DEVICE, deviceIdentifier).chown(uid, gid);
+								uf.mknod(mode|PosixFile.IS_BLOCK_DEVICE, deviceIdentifier).chown(uid, gid);
 							}
 						} else if(type==PackProtocol.CHARACTER_DEVICE) {
 							int uid = streamIn.readInt();
@@ -372,7 +372,7 @@ public class ParallelUnpack {
 							long deviceIdentifier = streamIn.readLong();
 							if(!dryRun) {
 								if(ufStat.exists()) uf.deleteRecursive();
-								uf.mknod(mode|UnixFile.IS_CHARACTER_DEVICE, deviceIdentifier).chown(uid, gid);
+								uf.mknod(mode|PosixFile.IS_CHARACTER_DEVICE, deviceIdentifier).chown(uid, gid);
 							}
 						} else if(type==PackProtocol.FIFO) {
 							int uid = streamIn.readInt();
@@ -390,7 +390,7 @@ public class ParallelUnpack {
 						while(!mtimeStack.isEmpty()) {
 							PathAndModifyTime pathAndMod = mtimeStack.pop();
 							SB.setLength(0);
-							UnixFile uf = new UnixFile(SB.append(path).append(pathAndMod.path).toString());
+							PosixFile uf = new PosixFile(SB.append(path).append(pathAndMod.path).toString());
 							uf.utime(uf.getStat().getAccessTime(), pathAndMod.modifyTime);
 						}
 					}
@@ -424,7 +424,7 @@ public class ParallelUnpack {
 		}
 	}
 
-	private static void readFile(UnixFile uf, DataInput in, byte[] buffer) throws IOException {
+	private static void readFile(PosixFile uf, DataInput in, byte[] buffer) throws IOException {
 		try (OutputStream out = new FileOutputStream(uf.getFile())) {
 			int count;
 			while((count=in.readShort()) != -1) {

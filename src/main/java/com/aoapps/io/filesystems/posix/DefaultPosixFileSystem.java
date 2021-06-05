@@ -1,80 +1,80 @@
 /*
- * ao-io-filesystems-unix - Advanced filesystem utilities for Unix.
- * Copyright (C) 2015  AO Industries, Inc.
+ * ao-io-filesystems-posix - POSIX filesystem abstraction.
+ * Copyright (C) 2015, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
  *
- * This file is part of ao-io-filesystems-unix.
+ * This file is part of ao-io-filesystems-posix.
  *
- * ao-io-filesystems-unix is free software: you can redistribute it and/or modify
+ * ao-io-filesystems-posix is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * ao-io-filesystems-unix is distributed in the hope that it will be useful,
+ * ao-io-filesystems-posix is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with ao-io-filesystems-unix.  If not, see <http://www.gnu.org/licenses/>.
+ * along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.aoindustries.io.filesystems.unix;
+package com.aoapps.io.filesystems.posix;
 
-import com.aoindustries.io.filesystems.InvalidPathException;
-import com.aoindustries.io.filesystems.JavaFileSystem;
-import com.aoindustries.io.filesystems.Path;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
+import com.aoapps.io.filesystems.InvalidPathException;
+import com.aoapps.io.filesystems.JavaFileSystem;
+import com.aoapps.io.filesystems.Path;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 
 /**
- * The Unix file system implement by the UnixFile.
+ * The Unix file system implement by the PosixFile.
  * 
- * @see UnixFile
+ * @see PosixFile
  *
  * @author  AO Industries, Inc.
  */
-public class DefaultUnixFileSystem extends JavaFileSystem implements UnixFileSystem {
+public class DefaultPosixFileSystem extends JavaFileSystem implements PosixFileSystem {
 
-	private static final DefaultUnixFileSystem instance = new DefaultUnixFileSystem();
+	private static final DefaultPosixFileSystem instance = new DefaultPosixFileSystem();
 
 	/**
 	 * Only one instance is created.
 	 */
-	public static DefaultUnixFileSystem getInstance() {
+	public static DefaultPosixFileSystem getInstance() {
 		return instance;
 	}
 
-	protected DefaultUnixFileSystem() {
+	protected DefaultPosixFileSystem() {
 		super(FileSystems.getDefault());
 		if(!isSingleRoot) throw new AssertionError("Default Unix filesystem must always be single root");
 	}
 
 	/**
-	 * @see  UnixFileSystem#checkSubPath(com.aoindustries.io.filesystems.Path, java.lang.String)
+	 * @see  PosixFileSystem#checkSubPath(com.aoapps.io.filesystems.Path, java.lang.String)
 	 */
 	@Override
 	public void checkSubPath(Path parent, String name) throws InvalidPathException {
-		UnixFileSystem.super.checkSubPath(parent, name);
+		PosixFileSystem.super.checkSubPath(parent, name);
 	}
 
 	/**
-	 * Gets a UnixFile for the given path.
+	 * Gets a PosixFile for the given path.
 	 * 
-	 * @see #getFile(com.aoindustries.io.filesystems.Path) 
+	 * @see #getFile(com.aoapps.io.filesystems.Path)
 	 */
-	private UnixFile getUnixFile(Path path) throws IOException {
+	private PosixFile getPosixFile(Path path) throws IOException {
 		assert path.getFileSystem() == this;
-		return new UnixFile(getJavaPath(path).toFile());
+		return new PosixFile(getJavaPath(path).toFile());
 	}
 
 	@Override
 	public Stat stat(Path path) throws IOException {
 		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		return getUnixFile(path).getStat();
+		return getPosixFile(path).getStat();
 	}
 
 	/**
@@ -85,7 +85,7 @@ public class DefaultUnixFileSystem extends JavaFileSystem implements UnixFileSys
 	public Path createFile(Path path, int mode) throws IOException {
 		if(path.getFileSystem() != this) throw new IllegalArgumentException();
 		super.createFile(path);
-		getUnixFile(path).setMode(mode);
+		getPosixFile(path).setMode(mode);
 		return path;
 	}
 
@@ -96,7 +96,7 @@ public class DefaultUnixFileSystem extends JavaFileSystem implements UnixFileSys
 	@Override
 	public Path createDirectory(Path path, int mode) throws IOException {
 		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		getUnixFile(path).mkdir(false, mode);
+		getPosixFile(path).mkdir(false, mode);
 		return path;
 	}
 }

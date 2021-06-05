@@ -1,30 +1,30 @@
 /*
- * ao-io-filesystems-unix - Advanced filesystem utilities for Unix.
- * Copyright (C) 2015  AO Industries, Inc.
+ * ao-io-filesystems-posix - POSIX filesystem abstraction.
+ * Copyright (C) 2015, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
  *
- * This file is part of ao-io-filesystems-unix.
+ * This file is part of ao-io-filesystems-posix.
  *
- * ao-io-filesystems-unix is free software: you can redistribute it and/or modify
+ * ao-io-filesystems-posix is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * ao-io-filesystems-unix is distributed in the hope that it will be useful,
+ * ao-io-filesystems-posix is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with ao-io-filesystems-unix.  If not, see <http://www.gnu.org/licenses/>.
+ * along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.aoindustries.io.filesystems.unix;
+package com.aoapps.io.filesystems.posix;
 
-import com.aoindustries.io.filesystems.Path;
-import com.aoindustries.io.filesystems.ReadOnlyFileSystem;
-import com.aoindustries.io.unix.Stat;
+import com.aoapps.io.filesystems.Path;
+import com.aoapps.io.filesystems.ReadOnlyFileSystem;
+import com.aoapps.io.posix.Stat;
 import java.io.IOException;
 import java.nio.file.ReadOnlyFileSystemException;
 
@@ -33,11 +33,11 @@ import java.nio.file.ReadOnlyFileSystemException;
  *
  * @author  AO Industries, Inc.
  */
-public class ReadOnlyUnixFileSystem extends ReadOnlyFileSystem implements UnixFileSystem {
+public class ReadOnlyPosixFileSystem extends ReadOnlyFileSystem implements PosixFileSystem {
 
-	private final UnixFileSystem wrapped;
+	private final PosixFileSystem wrapped;
 
-	public ReadOnlyUnixFileSystem(UnixFileSystem wrapped) {
+	public ReadOnlyPosixFileSystem(PosixFileSystem wrapped) {
 		super(wrapped);
 		this.wrapped = wrapped;
 	}

@@ -1,33 +1,33 @@
 /*
- * ao-io-filesystems-unix - Advanced filesystem utilities for Unix.
+ * ao-io-filesystems-posix - POSIX filesystem abstraction.
  * Copyright (C) 2009, 2010, 2011, 2013, 2015, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
  *
- * This file is part of ao-io-filesystems-unix.
+ * This file is part of ao-io-filesystems-posix.
  *
- * ao-io-filesystems-unix is free software: you can redistribute it and/or modify
+ * ao-io-filesystems-posix is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * ao-io-filesystems-unix is distributed in the hope that it will be useful,
+ * ao-io-filesystems-posix is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with ao-io-filesystems-unix.  If not, see <http://www.gnu.org/licenses/>.
+ * along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.aoindustries.io.filesystems.unix;
+package com.aoapps.io.filesystems.posix;
 
-import com.aoindustries.io.FilesystemIterator;
-import com.aoindustries.io.FilesystemIteratorRule;
-import com.aoindustries.io.stream.StreamableOutput;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.util.BufferManager;
+import com.aoapps.hodgepodge.io.FilesystemIterator;
+import com.aoapps.hodgepodge.io.FilesystemIteratorRule;
+import com.aoapps.hodgepodge.io.stream.StreamableOutput;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
+import com.aoapps.lang.util.BufferManager;
 import java.io.DataOutput;
 import java.io.EOFException;
 import java.io.File;
@@ -102,7 +102,7 @@ public class ParallelPack {
 			System.err.println("\t--\tEnd options, all additional arguments will be interpreted as paths");
 			System.exit(1);
 		} else {
-			List<UnixFile> directories = new ArrayList<>(args.length);
+			List<PosixFile> directories = new ArrayList<>(args.length);
 			PrintStream verboseOutput = null;
 			boolean compress = false;
 			String host = null;
@@ -121,7 +121,7 @@ public class ParallelPack {
 					else throw new IllegalArgumentException("Expecting port after -p");
 				} else if(!optionsEnded && arg.equals("--")) optionsEnded = true;
 				else if(!optionsEnded && arg.equals("-z")) compress = true;
-				else directories.add(new UnixFile(arg));
+				else directories.add(new PosixFile(arg));
 			}
 			try {
 				if(host != null) {
@@ -168,7 +168,7 @@ public class ParallelPack {
 	/**
 	 * Packs to the provided output stream.  The stream is flushed and closed.
 	 */
-	public static void parallelPack(List<UnixFile> directories, OutputStream out, final PrintStream verboseOutput, boolean compress) throws IOException {
+	public static void parallelPack(List<PosixFile> directories, OutputStream out, final PrintStream verboseOutput, boolean compress) throws IOException {
 		// Reused throughout method
 		final int numDirectories = directories.size();
 
@@ -188,7 +188,7 @@ public class ParallelPack {
 		{
 			int nextSlot = 0;
 			final Map<String, FilesystemIteratorRule> prefixRules = Collections.emptyMap();
-			for(UnixFile directory : directories) {
+			for(PosixFile directory : directories) {
 				Stat stat = directory.getStat();
 				if(!stat.exists()) throw new IOException("Directory not found: "+directory.getPath());
 				if(!stat.isDirectory()) throw new IOException("Not a directory: "+directory.getPath());
@@ -271,7 +271,7 @@ public class ParallelPack {
 							SB.append(startPath);
 							SB.append(relPath);
 							String fullPath = SB.toString();
-							UnixFile uf = new UnixFile(fullPath);
+							PosixFile uf = new PosixFile(fullPath);
 							// Get the pack path
 							SB.setLength(0);
 							int lastSlashPos = startPath.lastIndexOf(File.separatorChar);
@@ -409,7 +409,7 @@ public class ParallelPack {
 		}
 	}
 
-	private static void writeFile(UnixFile uf, DataOutput out, byte[] buffer) throws IOException {
+	private static void writeFile(PosixFile uf, DataOutput out, byte[] buffer) throws IOException {
 		try (InputStream in = new FileInputStream(uf.getFile())) {
 			int ret;
 			while((ret=in.read(buffer, 0, PackProtocol.BUFFER_SIZE)) != -1) {

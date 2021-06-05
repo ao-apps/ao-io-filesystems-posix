@@ -1,33 +1,33 @@
 /*
- * ao-io-filesystems-unix - Advanced filesystem utilities for Unix.
- * Copyright (C) 2015, 2020  AO Industries, Inc.
+ * ao-io-filesystems-posix - POSIX filesystem abstraction.
+ * Copyright (C) 2015, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
  *
- * This file is part of ao-io-filesystems-unix.
+ * This file is part of ao-io-filesystems-posix.
  *
- * ao-io-filesystems-unix is free software: you can redistribute it and/or modify
+ * ao-io-filesystems-posix is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * ao-io-filesystems-unix is distributed in the hope that it will be useful,
+ * ao-io-filesystems-posix is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with ao-io-filesystems-unix.  If not, see <http://www.gnu.org/licenses/>.
+ * along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.aoindustries.io.filesystems.unix;
+package com.aoapps.io.filesystems.posix;
 
-import com.aoindustries.io.filesystems.FileSystem;
-import com.aoindustries.io.filesystems.InvalidPathException;
-import static com.aoindustries.io.filesystems.JavaFileSystem.MAX_PATH_NAME_LENGTH;
-import com.aoindustries.io.filesystems.Path;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.io.unix.UnixFile;
+import com.aoapps.io.filesystems.FileSystem;
+import com.aoapps.io.filesystems.InvalidPathException;
+import static com.aoapps.io.filesystems.JavaFileSystem.MAX_PATH_NAME_LENGTH;
+import com.aoapps.io.filesystems.Path;
+import com.aoapps.io.posix.PosixFile;
+import com.aoapps.io.posix.Stat;
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
 
@@ -35,14 +35,14 @@ import java.nio.file.FileAlreadyExistsException;
  * The most basic layer of what Unix file systems have in common.
  * <p>
  * Note: The JVM must be in a single-byte locale, such as "C", "POSIX", or
- * "en_US".  UnixFile makes this assumption in its JNI implementation.
+ * "en_US".  PosixFile makes this assumption in its JNI implementation.
  * </p>
  * 
- * @see  UnixFile
+ * @see  PosixFile
  *
  * @author  AO Industries, Inc.
  */
-public interface UnixFileSystem extends FileSystem {
+public interface PosixFileSystem extends FileSystem {
 
 	/**
 	 * Unix filename restrictions are:

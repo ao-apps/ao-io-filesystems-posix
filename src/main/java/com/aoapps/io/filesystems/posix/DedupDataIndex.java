@@ -1,33 +1,33 @@
 /*
- * ao-io-filesystems-unix - Advanced filesystem utilities for Unix.
+ * ao-io-filesystems-posix - POSIX filesystem abstraction.
  * Copyright (C) 2015, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
  *
- * This file is part of ao-io-filesystems-unix.
+ * This file is part of ao-io-filesystems-posix.
  *
- * ao-io-filesystems-unix is free software: you can redistribute it and/or modify
+ * ao-io-filesystems-posix is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * ao-io-filesystems-unix is distributed in the hope that it will be useful,
+ * ao-io-filesystems-posix is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with ao-io-filesystems-unix.  If not, see <http://www.gnu.org/licenses/>.
+ * along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.aoindustries.io.filesystems.unix;
+package com.aoapps.io.filesystems.posix;
 
-import com.aoindustries.io.filesystems.FileLock;
-import com.aoindustries.io.filesystems.FileSystem;
-import com.aoindustries.io.filesystems.Path;
-import com.aoindustries.io.filesystems.PathIterator;
-import com.aoindustries.io.unix.Stat;
-import com.aoindustries.lang.Strings;
+import com.aoapps.io.filesystems.FileLock;
+import com.aoapps.io.filesystems.FileSystem;
+import com.aoapps.io.filesystems.Path;
+import com.aoapps.io.filesystems.PathIterator;
+import com.aoapps.io.posix.Stat;
+import com.aoapps.lang.Strings;
 import java.io.IOException;
 import java.nio.file.FileSystemException;
 import java.nio.file.NoSuchFileException;
@@ -265,10 +265,10 @@ public class DedupDataIndex {
 	// <editor-fold defaultstate="collapsed" desc="Obtaining instances">
 	private static class InstanceKey {
 
-		private final UnixFileSystem fileSystem;
+		private final PosixFileSystem fileSystem;
 		private final Path dataIndexDir;
 
-		private InstanceKey(UnixFileSystem fileSystem, Path dataIndexDir) {
+		private InstanceKey(PosixFileSystem fileSystem, Path dataIndexDir) {
 			if(fileSystem != dataIndexDir.getFileSystem()) throw new IllegalArgumentException("fileSystem and path.fileSystem do not match");
 			this.fileSystem = fileSystem;
 			this.dataIndexDir = dataIndexDir;
@@ -296,7 +296,7 @@ public class DedupDataIndex {
 	 * Gets the index for the given index directory.
 	 * Only one instance is created per file system instance and unique path.
 	 */
-	public static DedupDataIndex getInstance(UnixFileSystem fileSystem, Path dataIndexDir) throws IOException {
+	public static DedupDataIndex getInstance(PosixFileSystem fileSystem, Path dataIndexDir) throws IOException {
 		synchronized(instances) {
 			InstanceKey key = new InstanceKey(fileSystem, dataIndexDir);
 			DedupDataIndex instance = instances.get(key);
@@ -309,10 +309,10 @@ public class DedupDataIndex {
 	}
 	// </editor-fold>
 
-	private final UnixFileSystem fileSystem;
+	private final PosixFileSystem fileSystem;
 	private final Path dataIndexDir;
 
-	private DedupDataIndex(UnixFileSystem fileSystem, Path dataIndexDir) throws IOException {
+	private DedupDataIndex(PosixFileSystem fileSystem, Path dataIndexDir) throws IOException {
 		this.fileSystem = fileSystem;
 		this.dataIndexDir = dataIndexDir;
 
@@ -328,7 +328,7 @@ public class DedupDataIndex {
 	/**
 	 * The file system containing this index.
 	 */
-	public UnixFileSystem getFileSystem() {
+	public PosixFileSystem getFileSystem() {
 		return fileSystem;
 	}
 
@@ -415,7 +415,7 @@ public class DedupDataIndex {
 		/**
 		 * Gets an exclusive lock on this hash directory.
 		 *
-		 * @see  FileSystem#lock(com.aoindustries.io.filesystems.Path)
+		 * @see  FileSystem#lock(com.aoapps.io.filesystems.Path)
 		 */
 		private FileLock lock() throws IOException {
 			return fileSystem.lock(lockPath);
