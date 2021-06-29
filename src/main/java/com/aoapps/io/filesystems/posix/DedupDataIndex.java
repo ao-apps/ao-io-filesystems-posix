@@ -349,7 +349,9 @@ public class DedupDataIndex {
 		int pos = 0;
 		do {
 			shift -= HEX_BITS;
-			total |= Strings.getHex(hex.charAt(pos++)) << shift;
+			@SuppressWarnings("deprecation")
+			int hexVal = Strings.getHex(hex.charAt(pos++));
+			total |= hexVal << shift;
 		} while(shift > 0);
 		return total;
 	}
@@ -369,7 +371,9 @@ public class DedupDataIndex {
 			int shift = HEX_BITS * DIRECTORY_HASH_CHARACTERS;
 			do {
 				shift -= HEX_BITS;
-				name.append(Strings.getHexChar(hashDir >>> shift));
+				@SuppressWarnings("deprecation")
+				char hexChar = Strings.getHexChar(hashDir >>> shift);
+				name.append(hexChar);
 			} while(shift > 0);
 			this.lockDirName = name.toString();
 			this.lockPath = new Path(
