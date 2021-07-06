@@ -90,6 +90,15 @@ along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses />
 
 	<build>
 		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId><artifactId>maven-dependency-plugin</artifactId>
+				<configuration>
+					<usedDependencies>
+						<!-- Javadoc-only -->
+						<dependency>com.aoindustries:aoserv-daemon-client</dependency>
+					</usedDependencies>
+				</configuration>
+			</plugin>
 			<!-- Java 1.8: see https://maven.apache.org/plugins/maven-compiler-plugin/examples/module-info.html -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId>
@@ -135,12 +144,6 @@ along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses />
 								<id>unpack.offlineLinks</id><phase>generate-sources</phase><goals><goal>unpack</goal></goals>
 								<configuration>
 									<artifactItems>
-										<!-- Javadoc-only -->
-										<artifactItem>
-											<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId><classifier>javadoc</classifier>
-											<includes>element-list, package-list</includes>
-											<outputDirectory>${project.build.directory}/offlineLinks/com.aoindustries/aoserv-daemon-client</outputDirectory>
-										</artifactItem>
 										<!-- Direct -->
 										<artifactItem>
 											<groupId>com.aoapps</groupId><artifactId>ao-hodgepodge</artifactId><classifier>javadoc</classifier>
@@ -163,6 +166,11 @@ along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses />
 											<outputDirectory>${project.build.directory}/offlineLinks/com.aoapps/ao-lang</outputDirectory>
 										</artifactItem>
 										<artifactItem>
+											<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId><classifier>javadoc</classifier>
+											<includes>element-list, package-list</includes>
+											<outputDirectory>${project.build.directory}/offlineLinks/com.aoindustries/aoserv-daemon-client</outputDirectory>
+										</artifactItem>
+										<artifactItem>
 											<groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId><classifier>javadoc</classifier>
 											<includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/org.apache.commons/commons-lang3</outputDirectory>
@@ -176,11 +184,6 @@ along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses />
 						<groupId>org.apache.maven.plugins</groupId><artifactId>maven-javadoc-plugin</artifactId>
 						<configuration>
 							<offlineLinks>
-								<!-- Javadoc-only -->
-								<offlineLink>
-									<url>https://aoindustries.com/aoserv/daemon/client/apidocs/</url>
-									<location>${project.build.directory}/offlineLinks/com.aoindustries/aoserv-daemon-client</location>
-								</offlineLink>
 								<!-- Direct -->
 								<offlineLink>
 									<url>https://oss.aoapps.com/hodgepodge/apidocs/</url>
@@ -197,6 +200,10 @@ along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses />
 								<offlineLink>
 									<url>https://oss.aoapps.com/lang/apidocs/</url>
 									<location>${project.build.directory}/offlineLinks/com.aoapps/ao-lang</location>
+								</offlineLink>
+								<offlineLink>
+									<url>https://aoindustries.com/aoserv/daemon/client/apidocs/</url>
+									<location>${project.build.directory}/offlineLinks/com.aoindustries/aoserv-daemon-client</location>
 								</offlineLink>
 								<offlineLink>
 									<url>https://javadoc.io/doc/org.apache.commons/commons-lang3/${commons-lang3.version}/</url>
@@ -217,11 +224,6 @@ along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses />
 
 	<dependencyManagement>
 		<dependencies>
-			<!-- Javadoc-only -->
-			<dependency>
-				<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId><version>1.84.22-SNAPSHOT<!-- ${POST-SNAPSHOT} --></version>
-				<exclusions><exclusion><groupId>*</groupId><artifactId>*</artifactId></exclusion></exclusions>
-			</dependency>
 			<!-- Direct -->
 			<dependency>
 				<groupId>com.aoapps</groupId><artifactId>ao-hodgepodge</artifactId><version>5.0.0${POST-SNAPSHOT}</version>
@@ -234,6 +236,11 @@ along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses />
 			</dependency>
 			<dependency>
 				<groupId>com.aoapps</groupId><artifactId>ao-lang</artifactId><version>5.0.0${POST-SNAPSHOT}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId><version>1.84.22-SNAPSHOT<!-- ${POST-SNAPSHOT} --></version>
+				<!-- Javadoc-only -->
+				<exclusions><exclusion><groupId>*</groupId><artifactId>*</artifactId></exclusion></exclusions>
 			</dependency>
 			<dependency>
 				<groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId><version>${commons-lang3.version}</version>
@@ -249,11 +256,6 @@ along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses />
 	</dependencyManagement>
 
 	<dependencies>
-		<!-- Javadoc-only -->
-		<dependency>
-			<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId>
-			<optional>true</optional>
-		</dependency>
 		<!-- Direct -->
 		<dependency>
 			<groupId>com.aoapps</groupId><artifactId>ao-hodgepodge</artifactId>
@@ -266,6 +268,11 @@ along with ao-io-filesystems-posix.  If not, see <http://www.gnu.org/licenses />
 		</dependency>
 		<dependency>
 			<groupId>com.aoapps</groupId><artifactId>ao-lang</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId>
+			<!-- Javadoc-only -->
+			<optional>true</optional>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId>

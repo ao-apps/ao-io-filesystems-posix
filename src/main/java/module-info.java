@@ -22,13 +22,12 @@
  */
 module com.aoapps.io.filesystems.posix {
 	exports com.aoapps.io.filesystems.posix;
-	// Javadoc-only
-	requires static com.aoindustries.aoserv.daemon.client; // <groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId>
 	// Direct
 	requires com.aoapps.hodgepodge; // <groupId>com.aoapps</groupId><artifactId>ao-hodgepodge</artifactId>
 	requires com.aoapps.io.filesystems; // <groupId>com.aoapps</groupId><artifactId>ao-io-filesystems</artifactId>
 	requires com.aoapps.io.posix; // <groupId>com.aoapps</groupId><artifactId>ao-io-posix</artifactId>
 	requires com.aoapps.lang; // <groupId>com.aoapps</groupId><artifactId>ao-lang</artifactId>
+	requires static com.aoindustries.aoserv.daemon.client; // <groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId>
 	requires org.apache.commons.lang3; // <groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId>
 	// Java SE
 	requires java.logging;
