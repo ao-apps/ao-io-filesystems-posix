@@ -123,9 +123,9 @@ public class ParallelUnpack {
 					try {
 						// Accept only one TCP connection
 						try (
-							ServerSocket SS = host == null ? new ServerSocket(port, 1) : new ServerSocket(port, 1, InetAddress.getByName(host))
+							ServerSocket ss = host == null ? new ServerSocket(port, 1) : new ServerSocket(port, 1, InetAddress.getByName(host))
 						) {
-							socket = SS.accept();
+							socket = ss.accept();
 						}
 						try (
 							OutputStream out = socket.getOutputStream();
@@ -221,7 +221,7 @@ public class ParallelUnpack {
 			boolean compress = streamIn.readBoolean();
 			if(compress) streamIn = new StreamableInput(new GZIPInputStream(in, PackProtocol.BUFFER_SIZE));
 			// Reused in main loop
-			final StringBuilder SB = new StringBuilder();
+			final StringBuilder sb = new StringBuilder();
 			final byte[] buffer = PackProtocol.BUFFER_SIZE == BufferManager.BUFFER_SIZE ? BufferManager.getBytes() : new byte[PackProtocol.BUFFER_SIZE];
 			try {
 				// Hard link management
@@ -247,10 +247,10 @@ public class ParallelUnpack {
 
 						if(packPath.length() == 0) throw new IOException("Empty packPath");
 						if(packPath.charAt(0)!='/') throw new IOException("Invalid packPath, first character is not /");
-						SB.setLength(0);
-						SB.append(path);
-						SB.append(packPath);
-						String fullPath = SB.toString();
+						sb.setLength(0);
+						sb.append(path);
+						sb.append(packPath);
+						String fullPath = sb.toString();
 
 						// Maintain modify time of directories
 						int slashPos = packPath.indexOf('/', 1);
@@ -261,8 +261,8 @@ public class ParallelUnpack {
 							while(!mtimeStack.isEmpty()) {
 								PathAndModifyTime pathAndMod = mtimeStack.peek();
 								if(packPath.startsWith(pathAndMod.path)) break;
-								SB.setLength(0);
-								PosixFile uf = new PosixFile(SB.append(path).append(pathAndMod.path).toString());
+								sb.setLength(0);
+								PosixFile uf = new PosixFile(sb.append(path).append(pathAndMod.path).toString());
 								uf.utime(
 									uf.getStat().getAccessTime(),
 									pathAndMod.modifyTime
@@ -300,10 +300,10 @@ public class ParallelUnpack {
 									// Already sent, link and decrement our count
 									if(!dryRun) {
 										if(ufStat.exists()) uf.deleteRecursive();
-										SB.setLength(0);
-										SB.append(path);
-										SB.append(pathAndCount.path);
-										String linkPath = SB.toString();
+										sb.setLength(0);
+										sb.append(path);
+										sb.append(pathAndCount.path);
+										String linkPath = sb.toString();
 										uf.link(linkPath);
 									}
 									if(--pathAndCount.linkCount<=0) linkPathAndCounts.remove(linkIdL);
@@ -389,8 +389,8 @@ public class ParallelUnpack {
 					for(Stack<PathAndModifyTime> mtimeStack : directoryModifyTimes.values()) {
 						while(!mtimeStack.isEmpty()) {
 							PathAndModifyTime pathAndMod = mtimeStack.pop();
-							SB.setLength(0);
-							PosixFile uf = new PosixFile(SB.append(path).append(pathAndMod.path).toString());
+							sb.setLength(0);
+							PosixFile uf = new PosixFile(sb.append(path).append(pathAndMod.path).toString());
 							uf.utime(uf.getStat().getAccessTime(), pathAndMod.modifyTime);
 						}
 					}

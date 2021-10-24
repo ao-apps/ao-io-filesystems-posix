@@ -70,7 +70,7 @@ import java.util.zip.GZIPOutputStream;
  * It assumes that the file system is not changing, results of use on a changing
  * filesystem is not defined.
  * </p>
- * 
+ *
  * @see  ParallelUnpack
  *
  * @author  AO Industries, Inc.
@@ -176,12 +176,12 @@ public class ParallelPack {
 		// as opposed to O(n^2) for a list.  This is similar to the fix for AWStats logresolvemerge provided by Dan Armstrong
 		// a couple of years ago.
 		final Map<String, List<FilesystemIteratorAndSlot>> nextFiles = new TreeMap<>(
-			(String S1, String S2) -> {
+			(String s1, String s2) -> {
 				// Make sure directories are sorted after their directory contents
-				int diff = S1.compareTo(S2);
+				int diff = s1.compareTo(s2);
 				if(diff == 0) return 0;
-				if(S2.startsWith(S1)) return 1;
-				if(S1.startsWith(S2)) return -1;
+				if(s2.startsWith(s1)) return 1;
+				if(s1.startsWith(s2)) return -1;
 				return diff;
 			}
 		);
@@ -255,7 +255,7 @@ public class ParallelPack {
 				streamOut.writeBoolean(compress);
 				if(compress) streamOut = new StreamableOutput(new GZIPOutputStream(out, PackProtocol.BUFFER_SIZE));
 				// Reused in main loop
-				final StringBuilder SB = new StringBuilder();
+				final StringBuilder sb = new StringBuilder();
 				final byte[] buffer = PackProtocol.BUFFER_SIZE==BufferManager.BUFFER_SIZE ? BufferManager.getBytes() : new byte[PackProtocol.BUFFER_SIZE];
 				try {
 					// Main loop, continue until nextFiles is empty
@@ -266,19 +266,19 @@ public class ParallelPack {
 						for(FilesystemIteratorAndSlot iteratorAndSlot : nextFiles.remove(relPath)) {
 							FilesystemIterator iterator = iteratorAndSlot.iterator;
 							// Get the full path on this machine
-							SB.setLength(0);
+							sb.setLength(0);
 							String startPath = iterator.getStartPath();
-							SB.append(startPath);
-							SB.append(relPath);
-							String fullPath = SB.toString();
+							sb.append(startPath);
+							sb.append(relPath);
+							String fullPath = sb.toString();
 							PosixFile uf = new PosixFile(fullPath);
 							// Get the pack path
-							SB.setLength(0);
+							sb.setLength(0);
 							int lastSlashPos = startPath.lastIndexOf(File.separatorChar);
-							if(lastSlashPos==-1) SB.append(startPath);
-							else SB.append(startPath, lastSlashPos, startPath.length());
-							SB.append(relPath);
-							String packPath = SB.toString();
+							if(lastSlashPos == -1) sb.append(startPath);
+							else sb.append(startPath, lastSlashPos, startPath.length());
+							sb.append(relPath);
+							String packPath = sb.toString();
 							// Verbose output
 							if(verboseQueue != null) {
 								try {
