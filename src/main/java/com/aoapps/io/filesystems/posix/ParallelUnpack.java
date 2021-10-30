@@ -60,6 +60,7 @@ import java.util.zip.GZIPInputStream;
  *
  * @author  AO Industries, Inc.
  */
+@SuppressWarnings("UseOfSystemOutOrSystemErr")
 public class ParallelUnpack {
 
 	/**
@@ -75,7 +76,7 @@ public class ParallelUnpack {
 	/**
 	 * Unpacks multiple directories in parallel (but not concurrently).
 	 */
-	@SuppressWarnings({"UseOfSystemOutOrSystemErr", "AssignmentToForLoopParameter"})
+	@SuppressWarnings("AssignmentToForLoopParameter")
 	public static void main(String[] args) {
 		if(args.length == 0) {
 			System.err.println("Usage: "+ParallelUnpack.class.getName()+" [-d root] [-l] [-h host] [-p port] [-n] [-v] [--] path");
@@ -189,7 +190,7 @@ public class ParallelUnpack {
 			verboseThread = new Thread("ParallelUnpack - Verbose Thread") {
 				@Override
 				public void run() {
-					while(true) {
+					while(!Thread.currentThread().isInterrupted()) {
 						synchronized(verboseThreadRun) {
 							if(!verboseThreadRun[0] && verboseQueue.isEmpty()) break;
 						}
@@ -197,9 +198,9 @@ public class ParallelUnpack {
 							verboseOutput.println(verboseQueue.take());
 							if(verboseQueue.isEmpty()) verboseOutput.flush();
 						} catch(InterruptedException err) {
+							err.printStackTrace(System.err);
 							// Restore the interrupted status
 							Thread.currentThread().interrupt();
-							// Normal during thread shutdown
 						}
 					}
 				}
@@ -231,6 +232,7 @@ public class ParallelUnpack {
 				try {
 					// Main loop
 					while(true) {
+						if(Thread.currentThread().isInterrupted()) throw new InterruptedIOException();
 						byte type = streamIn.readByte();
 						if(type==PackProtocol.END) break;
 						String packPath = streamIn.readCompressedUTF();
@@ -239,7 +241,9 @@ public class ParallelUnpack {
 							try {
 								verboseQueue.put(packPath);
 							} catch(InterruptedException err) {
-								IOException ioErr = new InterruptedIOException();
+								// Restore the interrupted status
+								Thread.currentThread().interrupt();
+								InterruptedIOException ioErr = new InterruptedIOException();
 								ioErr.initCause(err);
 								throw ioErr;
 							}
@@ -405,11 +409,12 @@ public class ParallelUnpack {
 				synchronized(verboseThreadRun) {
 					verboseThreadRun[0] = false;
 				}
-				verboseThread.interrupt();
 				try {
 					verboseThread.join();
 				} catch(InterruptedException err) {
-					IOException ioErr = new InterruptedIOException();
+					// Restore the interrupted status
+					Thread.currentThread().interrupt();
+					InterruptedIOException ioErr = new InterruptedIOException();
 					ioErr.initCause(err);
 					throw ioErr;
 				}

@@ -75,6 +75,7 @@ import java.util.zip.GZIPOutputStream;
  *
  * @author  AO Industries, Inc.
  */
+@SuppressWarnings("UseOfSystemOutOrSystemErr")
 public class ParallelPack {
 
 	/**
@@ -90,7 +91,7 @@ public class ParallelPack {
 	/**
 	 * Packs multiple directories in parallel (but not concurrently).
 	 */
-	@SuppressWarnings({"UseOfSystemOutOrSystemErr", "AssignmentToForLoopParameter"})
+	@SuppressWarnings("AssignmentToForLoopParameter")
 	public static void main(String[] args) {
 		if(args.length == 0) {
 			System.err.println("Usage: "+ParallelPack.class.getName()+" [-d root] [-h host] [-p port] [-v] [--] path {path}");
@@ -222,7 +223,7 @@ public class ParallelPack {
 			verboseThread = new Thread("ParallelPack - Verbose Thread") {
 				@Override
 				public void run() {
-					while(true) {
+					while(!Thread.currentThread().isInterrupted()) {
 						synchronized(verboseThreadRun) {
 							if(!verboseThreadRun[0] && verboseQueue.isEmpty()) break;
 						}
@@ -230,7 +231,9 @@ public class ParallelPack {
 							verboseOutput.println(verboseQueue.take());
 							if(verboseQueue.isEmpty()) verboseOutput.flush();
 						} catch(InterruptedException err) {
-							// Normal during thread shutdown
+							err.printStackTrace(System.err);
+							// Restore the interrupted status
+							Thread.currentThread().interrupt();
 						}
 					}
 				}
@@ -260,6 +263,7 @@ public class ParallelPack {
 				try {
 					// Main loop, continue until nextFiles is empty
 					while(true) {
+						if(Thread.currentThread().isInterrupted()) throw new InterruptedIOException();
 						Iterator<String> iter = nextFiles.keySet().iterator();
 						if(!iter.hasNext()) break;
 						String relPath = iter.next();
@@ -284,7 +288,9 @@ public class ParallelPack {
 								try {
 									verboseQueue.put(packPath);
 								} catch(InterruptedException err) {
-									IOException ioErr = new InterruptedIOException();
+									// Restore the interrupted status
+									Thread.currentThread().interrupt();
+									InterruptedIOException ioErr = new InterruptedIOException();
 									ioErr.initCause(err);
 									throw ioErr;
 								}
@@ -397,11 +403,12 @@ public class ParallelPack {
 				synchronized(verboseThreadRun) {
 					verboseThreadRun[0] = false;
 				}
-				verboseThread.interrupt();
 				try {
 					verboseThread.join();
 				} catch(InterruptedException err) {
-					IOException ioErr = new InterruptedIOException();
+					// Restore the interrupted status
+					Thread.currentThread().interrupt();
+					InterruptedIOException ioErr = new InterruptedIOException();
 					ioErr.initCause(err);
 					throw ioErr;
 				}
