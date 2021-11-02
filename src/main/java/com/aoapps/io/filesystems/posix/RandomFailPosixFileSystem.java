@@ -53,32 +53,38 @@ public class RandomFailPosixFileSystem extends RandomFailFileSystem implements P
 	private final PosixFileSystem wrapped;
 	private final UnixFailureProbabilities unixFailureProbabilities;
 
+	/**
+	 * @param  fastRandom  A fast pseudo-random number generator for non-cryptographic purposes.
+	 */
 	public RandomFailPosixFileSystem(
 		PosixFileSystem wrappedFileSystem,
 		UnixFailureProbabilities unixFailureProbabilities,
-		Random random
+		Random fastRandom
 	) {
 		super(
 			wrappedFileSystem,
 			unixFailureProbabilities,
-			random
+			fastRandom
 		);
 		this.wrapped = wrappedFileSystem;
 		this.unixFailureProbabilities = unixFailureProbabilities;
 	}
 
-	private static final Random fastRandom = new Random(IoUtils.bufferToLong(new SecureRandom().generateSeed(8)));
+	/**
+	 * A fast pseudo-random number generator for non-cryptographic purposes.
+	 */
+	private static final Random defaultFastRandom = new Random(IoUtils.bufferToLong(new SecureRandom().generateSeed(Long.BYTES)));
 
 	/**
-	 * Uses default probabilities and a fast Random source.
-	 * 
-	 * @see SecureRandom
+	 * Uses default probabilities and a default fast pseudo-random number generator for non-cryptographic purposes.
+	 *
+	 * @see #defaultFastRandom
 	 */
 	public RandomFailPosixFileSystem(PosixFileSystem wrappedFileSystem) {
 		this(
 			wrappedFileSystem,
 			new UnixFailureProbabilities() {},
-			fastRandom
+			defaultFastRandom
 		);
 	}
 
