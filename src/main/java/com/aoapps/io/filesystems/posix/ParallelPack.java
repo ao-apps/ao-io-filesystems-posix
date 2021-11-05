@@ -76,17 +76,15 @@ import java.util.zip.GZIPOutputStream;
  * @author  AO Industries, Inc.
  */
 @SuppressWarnings("UseOfSystemOutOrSystemErr")
-public class ParallelPack {
+public abstract class ParallelPack {
+
+	/** Make no instances. */
+	private ParallelPack() {throw new AssertionError();}
 
 	/**
 	 * The size of the verbose output queue.
 	 */
 	private static final int VERBOSE_QUEUE_SIZE = 1000;
-
-	/**
-	 * Make no instances.
-	 */
-	private ParallelPack() {}
 
 	/**
 	 * Packs multiple directories in parallel (but not concurrently).

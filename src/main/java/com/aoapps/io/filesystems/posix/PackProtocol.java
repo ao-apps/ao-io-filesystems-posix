@@ -24,18 +24,16 @@ package com.aoapps.io.filesystems.posix;
 
 /**
  * The internal protocol values used between ParallelPack and ParallelUnpack.
- * 
+ *
  * @see  ParallelPack
  * @see  ParallelUnpack
  *
  * @author  AO Industries, Inc.
  */
-class PackProtocol {
+abstract class PackProtocol {
 
-	/**
-	 * Make no instances.
-	 */
-	private PackProtocol() {}
+	/** Make no instances. */
+	private PackProtocol() {throw new AssertionError();}
 
 	/**
 	 * The header (magic value).
@@ -44,7 +42,7 @@ class PackProtocol {
 
 	/**
 	 * The version supported.
-	 * 
+	 *
 	 * 1 - Original version
 	 * 2 - Added single byte response from unpack when connected over TCP to
 	 *     avoid EOFException on socket close

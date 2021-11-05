@@ -83,7 +83,9 @@ public class RandomFailPosixFileSystem extends RandomFailFileSystem implements P
 	public RandomFailPosixFileSystem(PosixFileSystem wrappedFileSystem) {
 		this(
 			wrappedFileSystem,
-			new UnixFailureProbabilities() {},
+			new UnixFailureProbabilities() {
+				// All defaults
+			},
 			defaultFastRandom
 		);
 	}
