@@ -29,7 +29,7 @@ along with ao-io-filesystems-posix.  If not, see <https://www.gnu.org/licenses/>
 		<relativePath>../parent/pom.xml</relativePath>
 	</parent>
 
-	<groupId>com.aoapps</groupId><artifactId>ao-io-filesystems-posix</artifactId><version>0.2.1-SNAPSHOT</version>
+	<groupId>com.aoapps</groupId><artifactId>ao-io-filesystems-posix</artifactId><version>0.2.1</version>
 	<packaging>bundle</packaging>
 
 	<properties>
@@ -86,7 +86,7 @@ along with ao-io-filesystems-posix.  If not, see <https://www.gnu.org/licenses/>
 		<connection>scm:git:git://github.com/ao-apps/ao-io-filesystems-posix.git</connection>
 		<developerConnection>scm:git:git@github.com:ao-apps/ao-io-filesystems-posix.git</developerConnection>
 		<url>https://github.com/ao-apps/ao-io-filesystems-posix</url>
-		<tag>HEAD</tag>
+		<tag>ao-io-filesystems-posix-0.2.1</tag>
 	</scm>
 
 	<issueManagement>
