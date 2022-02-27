@@ -1,6 +1,6 @@
 /*
  * ao-io-filesystems-posix - POSIX filesystem abstraction.
- * Copyright (C) 2009, 2010, 2011, 2015, 2021  AO Industries, Inc.
+ * Copyright (C) 2009, 2010, 2011, 2015, 2021, 2022  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -30,7 +30,7 @@ package com.aoapps.io.filesystems.posix;
  *
  * @author  AO Industries, Inc.
  */
-abstract class PackProtocol {
+final class PackProtocol {
 
 	/** Make no instances. */
 	private PackProtocol() {throw new AssertionError();}
