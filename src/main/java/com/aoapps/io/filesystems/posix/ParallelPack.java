@@ -79,361 +79,415 @@ import java.util.zip.GZIPOutputStream;
 @SuppressWarnings("UseOfSystemOutOrSystemErr")
 public final class ParallelPack {
 
-	/** Make no instances. */
-	private ParallelPack() {throw new AssertionError();}
+  /** Make no instances. */
+  private ParallelPack() {
+    throw new AssertionError();
+  }
 
-	/**
-	 * The size of the verbose output queue.
-	 */
-	private static final int VERBOSE_QUEUE_SIZE = 1000;
+  /**
+   * The size of the verbose output queue.
+   */
+  private static final int VERBOSE_QUEUE_SIZE = 1000;
 
-	/**
-	 * Packs multiple directories in parallel (but not concurrently).
-	 */
-	@SuppressWarnings("AssignmentToForLoopParameter")
-	public static void main(String[] args) {
-		if(args.length == 0) {
-			System.err.println("Usage: "+ParallelPack.class.getName()+" [-d root] [-h host] [-p port] [-v] [--] path {path}");
-			System.err.println("\t-d\tRead from a deduplicated filesystem at the given root, paths are relative to this root");
-			System.err.println("\t-h\tWill connect to host instead of writing to standard out");
-			System.err.println("\t-p\tWill connect to port instead of port "+PackProtocol.DEFAULT_PORT);
-			System.err.println("\t-v\tWrite the full path to standard error as each file is packed");
-			System.err.println("\t-z\tCompress the output");
-			System.err.println("\t--\tEnd options, all additional arguments will be interpreted as paths");
-			System.exit(1);
-		} else {
-			List<PosixFile> directories = new ArrayList<>(args.length);
-			PrintStream verboseOutput = null;
-			boolean compress = false;
-			String host = null;
-			int port = PackProtocol.DEFAULT_PORT;
-			boolean optionsEnded = false;
-			for(int i=0; i<args.length; i++) {
-				String arg = args[i];
-				if(!optionsEnded && arg.equals("-v")) verboseOutput = System.err;
-				else if(!optionsEnded && arg.equals("-h")) {
-					i++;
-					if(i<args.length) host = args[i];
-					else throw new IllegalArgumentException("Expecting host after -h");
-				} else if(!optionsEnded && arg.equals("-p")) {
-					i++;
-					if(i<args.length) port = Integer.parseInt(args[i]);
-					else throw new IllegalArgumentException("Expecting port after -p");
-				} else if(!optionsEnded && arg.equals("--")) optionsEnded = true;
-				else if(!optionsEnded && arg.equals("-z")) compress = true;
-				else directories.add(new PosixFile(arg));
-			}
-			try {
-				if(host != null) {
-					try (
-						Socket socket = new Socket(host, port);
-						OutputStream out = socket.getOutputStream();
-						InputStream in = socket.getInputStream()
-					) {
-						parallelPack(directories, out, verboseOutput, compress);
-						int resp = in.read();
-						if(resp==-1) throw new EOFException("End of file while reading completion confirmation");
-						if(resp!=PackProtocol.END) throw new IOException("Unexpected value while reading completion confirmation");
-					}
-				} else {
-					// System.out
-					parallelPack(directories, System.out, verboseOutput, compress);
-				}
-			} catch(IOException err) {
-				err.printStackTrace(System.err);
-				System.err.flush();
-				System.exit(2);
-			}
-		}
-	}
+  /**
+   * Packs multiple directories in parallel (but not concurrently).
+   */
+  @SuppressWarnings("AssignmentToForLoopParameter")
+  public static void main(String[] args) {
+    if (args.length == 0) {
+      System.err.println("Usage: "+ParallelPack.class.getName()+" [-d root] [-h host] [-p port] [-v] [--] path {path}");
+      System.err.println("\t-d\tRead from a deduplicated filesystem at the given root, paths are relative to this root");
+      System.err.println("\t-h\tWill connect to host instead of writing to standard out");
+      System.err.println("\t-p\tWill connect to port instead of port "+PackProtocol.DEFAULT_PORT);
+      System.err.println("\t-v\tWrite the full path to standard error as each file is packed");
+      System.err.println("\t-z\tCompress the output");
+      System.err.println("\t--\tEnd options, all additional arguments will be interpreted as paths");
+      System.exit(1);
+    } else {
+      List<PosixFile> directories = new ArrayList<>(args.length);
+      PrintStream verboseOutput = null;
+      boolean compress = false;
+      String host = null;
+      int port = PackProtocol.DEFAULT_PORT;
+      boolean optionsEnded = false;
+      for (int i=0; i<args.length; i++) {
+        String arg = args[i];
+        if (!optionsEnded && arg.equals("-v")) {
+          verboseOutput = System.err;
+        } else if (!optionsEnded && arg.equals("-h")) {
+          i++;
+          if (i<args.length) {
+            host = args[i];
+          } else {
+            throw new IllegalArgumentException("Expecting host after -h");
+          }
+        } else if (!optionsEnded && arg.equals("-p")) {
+          i++;
+          if (i<args.length) {
+            port = Integer.parseInt(args[i]);
+          } else {
+            throw new IllegalArgumentException("Expecting port after -p");
+          }
+        } else if (!optionsEnded && arg.equals("--")) {
+          optionsEnded = true;
+        } else if (!optionsEnded && arg.equals("-z")) {
+          compress = true;
+        } else {
+          directories.add(new PosixFile(arg));
+        }
+      }
+      try {
+        if (host != null) {
+          try (
+            Socket socket = new Socket(host, port);
+            OutputStream out = socket.getOutputStream();
+            InputStream in = socket.getInputStream()
+          ) {
+            parallelPack(directories, out, verboseOutput, compress);
+            int resp = in.read();
+            if (resp == -1) {
+              throw new EOFException("End of file while reading completion confirmation");
+            }
+            if (resp != PackProtocol.END) {
+              throw new IOException("Unexpected value while reading completion confirmation");
+            }
+          }
+        } else {
+          // System.out
+          parallelPack(directories, System.out, verboseOutput, compress);
+        }
+      } catch (IOException err) {
+        err.printStackTrace(System.err);
+        System.err.flush();
+        System.exit(2);
+      }
+    }
+  }
 
-	private static class LinkAndCount {
-		final long linkId;
-		int linkCount;
-		LinkAndCount(long linkId, int linkCount) {
-			this.linkId = linkId;
-			this.linkCount = linkCount;
-		}
-	}
+  private static class LinkAndCount {
+    final long linkId;
+    int linkCount;
+    LinkAndCount(long linkId, int linkCount) {
+      this.linkId = linkId;
+      this.linkCount = linkCount;
+    }
+  }
 
-	static class FilesystemIteratorAndSlot {
-		final FilesystemIterator iterator;
-		final int slot;
-		FilesystemIteratorAndSlot(FilesystemIterator iterator, int slot) {
-			this.iterator = iterator;
-			this.slot = slot;
-		}
-	}
+  static class FilesystemIteratorAndSlot {
+    final FilesystemIterator iterator;
+    final int slot;
+    FilesystemIteratorAndSlot(FilesystemIterator iterator, int slot) {
+      this.iterator = iterator;
+      this.slot = slot;
+    }
+  }
 
-	/**
-	 * Packs to the provided output stream.  The stream is flushed and closed.
-	 */
-	public static void parallelPack(List<PosixFile> directories, OutputStream out, final PrintStream verboseOutput, boolean compress) throws IOException {
-		// Reused throughout method
-		final int numDirectories = directories.size();
+  /**
+   * Packs to the provided output stream.  The stream is flushed and closed.
+   */
+  public static void parallelPack(List<PosixFile> directories, OutputStream out, final PrintStream verboseOutput, boolean compress) throws IOException {
+    // Reused throughout method
+    final int numDirectories = directories.size();
 
-		// The set of next files is kept in key order so that it can scale with O(n*log(n)) for larger numbers of directories
-		// as opposed to O(n^2) for a list.  This is similar to the fix for AWStats logresolvemerge provided by Dan Armstrong
-		// a couple of years ago.
-		final Map<String, List<FilesystemIteratorAndSlot>> nextFiles = new TreeMap<>(
-			(String s1, String s2) -> {
-				// Make sure directories are sorted after their directory contents
-				int diff = s1.compareTo(s2);
-				if(diff == 0) return 0;
-				if(s2.startsWith(s1)) return 1;
-				if(s1.startsWith(s2)) return -1;
-				return diff;
-			}
-		);
-		{
-			int nextSlot = 0;
-			final Map<String, FilesystemIteratorRule> prefixRules = Collections.emptyMap();
-			for(PosixFile directory : directories) {
-				Stat stat = directory.getStat();
-				if(!stat.exists()) throw new IOException("Directory not found: "+directory.getPath());
-				if(!stat.isDirectory()) throw new IOException("Not a directory: "+directory.getPath());
-				String path = directory.getFile().getCanonicalPath();
-				Map<String, FilesystemIteratorRule> rules = Collections.singletonMap(path, FilesystemIteratorRule.OK);
-				FilesystemIterator iterator = new FilesystemIterator(rules, prefixRules, path, true, true);
-				File nextFile = iterator.getNextFile();
-				if(nextFile != null) {
-					String relPath = getRelativePath(nextFile, iterator);
-					List<FilesystemIteratorAndSlot> list = nextFiles.get(relPath);
-					if(list == null) {
-						list = new ArrayList<>(numDirectories);
-						nextFiles.put(relPath, list);
-					}
-					list.add(new FilesystemIteratorAndSlot(iterator, nextSlot++));
-					if(nextSlot>62) nextSlot = 0;
-				}
-			}
-		}
+    // The set of next files is kept in key order so that it can scale with O(n*log(n)) for larger numbers of directories
+    // as opposed to O(n^2) for a list.  This is similar to the fix for AWStats logresolvemerge provided by Dan Armstrong
+    // a couple of years ago.
+    final Map<String, List<FilesystemIteratorAndSlot>> nextFiles = new TreeMap<>(
+      (String s1, String s2) -> {
+        // Make sure directories are sorted after their directory contents
+        int diff = s1.compareTo(s2);
+        if (diff == 0) {
+          return 0;
+        }
+        if (s2.startsWith(s1)) {
+          return 1;
+        }
+        if (s1.startsWith(s2)) {
+          return -1;
+        }
+        return diff;
+      }
+    );
+    {
+      int nextSlot = 0;
+      final Map<String, FilesystemIteratorRule> prefixRules = Collections.emptyMap();
+      for (PosixFile directory : directories) {
+        Stat stat = directory.getStat();
+        if (!stat.exists()) {
+          throw new IOException("Directory not found: "+directory.getPath());
+        }
+        if (!stat.isDirectory()) {
+          throw new IOException("Not a directory: "+directory.getPath());
+        }
+        String path = directory.getFile().getCanonicalPath();
+        Map<String, FilesystemIteratorRule> rules = Collections.singletonMap(path, FilesystemIteratorRule.OK);
+        FilesystemIterator iterator = new FilesystemIterator(rules, prefixRules, path, true, true);
+        File nextFile = iterator.getNextFile();
+        if (nextFile != null) {
+          String relPath = getRelativePath(nextFile, iterator);
+          List<FilesystemIteratorAndSlot> list = nextFiles.get(relPath);
+          if (list == null) {
+            list = new ArrayList<>(numDirectories);
+            nextFiles.put(relPath, list);
+          }
+          list.add(new FilesystemIteratorAndSlot(iterator, nextSlot++));
+          if (nextSlot>62) {
+            nextSlot = 0;
+          }
+        }
+      }
+    }
 
-		final BlockingQueue<String> verboseQueue;
-		final boolean[] verboseThreadRun;
-		Thread verboseThread;
-		if(verboseOutput == null) {
-			verboseQueue = null;
-			verboseThreadRun = null;
-			verboseThread = null;
-		} else {
-			verboseQueue = new ArrayBlockingQueue<>(VERBOSE_QUEUE_SIZE);
-			verboseThreadRun = new boolean[] {true};
-			verboseThread = new Thread("ParallelPack - Verbose Thread") {
-				@Override
-				public void run() {
-					while(!Thread.currentThread().isInterrupted()) {
-						synchronized(verboseThreadRun) {
-							if(!verboseThreadRun[0] && verboseQueue.isEmpty()) break;
-						}
-						try {
-							verboseOutput.println(verboseQueue.take());
-							if(verboseQueue.isEmpty()) verboseOutput.flush();
-						} catch(InterruptedException err) {
-							err.printStackTrace(System.err);
-							// Restore the interrupted status
-							Thread.currentThread().interrupt();
-						}
-					}
-				}
-			};
+    final BlockingQueue<String> verboseQueue;
+    final boolean[] verboseThreadRun;
+    Thread verboseThread;
+    if (verboseOutput == null) {
+      verboseQueue = null;
+      verboseThreadRun = null;
+      verboseThread = null;
+    } else {
+      verboseQueue = new ArrayBlockingQueue<>(VERBOSE_QUEUE_SIZE);
+      verboseThreadRun = new boolean[] {true};
+      verboseThread = new Thread("ParallelPack - Verbose Thread") {
+        @Override
+        public void run() {
+          while (!Thread.currentThread().isInterrupted()) {
+            synchronized (verboseThreadRun) {
+              if (!verboseThreadRun[0] && verboseQueue.isEmpty()) {
+                break;
+              }
+            }
+            try {
+              verboseOutput.println(verboseQueue.take());
+              if (verboseQueue.isEmpty()) {
+                verboseOutput.flush();
+              }
+            } catch (InterruptedException err) {
+              err.printStackTrace(System.err);
+              // Restore the interrupted status
+              Thread.currentThread().interrupt();
+            }
+          }
+        }
+      };
 
-			verboseThread.start();
-		}
-		try {
-			// Hard link management
-			long nextLinkId = 1; // LinkID of 0 is reserved for no link
-			// This is a mapping from device->inode->linkId
-			Map<Long, Map<Long, LinkAndCount>> deviceInodeIdMap = new HashMap<>();
+      verboseThread.start();
+    }
+    try {
+      // Hard link management
+      long nextLinkId = 1; // LinkID of 0 is reserved for no link
+      // This is a mapping from device->inode->linkId
+      Map<Long, Map<Long, LinkAndCount>> deviceInodeIdMap = new HashMap<>();
 
-			StreamableOutput streamOut = new StreamableOutput(out);
-			try {
-				// Header
-				for(int c = 0, len = PackProtocol.HEADER.length(); c < len; c++) {
-					streamOut.write(PackProtocol.HEADER.charAt(c));
-				}
-				// Version
-				streamOut.writeInt(PackProtocol.VERSION);
-				streamOut.writeBoolean(compress);
-				if(compress) streamOut = new StreamableOutput(new GZIPOutputStream(out, PackProtocol.BUFFER_SIZE));
-				// Reused in main loop
-				final StringBuilder sb = new StringBuilder();
-				final byte[] buffer = PackProtocol.BUFFER_SIZE==BufferManager.BUFFER_SIZE ? BufferManager.getBytes() : new byte[PackProtocol.BUFFER_SIZE];
-				try {
-					// Main loop, continue until nextFiles is empty
-					while(true) {
-						if(Thread.currentThread().isInterrupted()) throw new InterruptedIOException();
-						Iterator<String> iter = nextFiles.keySet().iterator();
-						if(!iter.hasNext()) break;
-						String relPath = iter.next();
-						for(FilesystemIteratorAndSlot iteratorAndSlot : nextFiles.remove(relPath)) {
-							FilesystemIterator iterator = iteratorAndSlot.iterator;
-							// Get the full path on this machine
-							sb.setLength(0);
-							String startPath = iterator.getStartPath();
-							sb.append(startPath);
-							sb.append(relPath);
-							String fullPath = sb.toString();
-							PosixFile uf = new PosixFile(fullPath);
-							// Get the pack path
-							sb.setLength(0);
-							int lastSlashPos = startPath.lastIndexOf(File.separatorChar);
-							if(lastSlashPos == -1) sb.append(startPath);
-							else sb.append(startPath, lastSlashPos, startPath.length());
-							sb.append(relPath);
-							String packPath = sb.toString();
-							// Verbose output
-							if(verboseQueue != null) {
-								try {
-									verboseQueue.put(packPath);
-								} catch(InterruptedException err) {
-									// Restore the interrupted status
-									Thread.currentThread().interrupt();
-									InterruptedIOException ioErr = new InterruptedIOException();
-									ioErr.initCause(err);
-									throw ioErr;
-								}
-							}
+      StreamableOutput streamOut = new StreamableOutput(out);
+      try {
+        // Header
+        for (int c = 0, len = PackProtocol.HEADER.length(); c < len; c++) {
+          streamOut.write(PackProtocol.HEADER.charAt(c));
+        }
+        // Version
+        streamOut.writeInt(PackProtocol.VERSION);
+        streamOut.writeBoolean(compress);
+        if (compress) {
+          streamOut = new StreamableOutput(new GZIPOutputStream(out, PackProtocol.BUFFER_SIZE));
+        }
+        // Reused in main loop
+        final StringBuilder sb = new StringBuilder();
+        final byte[] buffer = PackProtocol.BUFFER_SIZE == BufferManager.BUFFER_SIZE ? BufferManager.getBytes() : new byte[PackProtocol.BUFFER_SIZE];
+        try {
+          // Main loop, continue until nextFiles is empty
+          while (true) {
+            if (Thread.currentThread().isInterrupted()) {
+              throw new InterruptedIOException();
+            }
+            Iterator<String> iter = nextFiles.keySet().iterator();
+            if (!iter.hasNext()) {
+              break;
+            }
+            String relPath = iter.next();
+            for (FilesystemIteratorAndSlot iteratorAndSlot : nextFiles.remove(relPath)) {
+              FilesystemIterator iterator = iteratorAndSlot.iterator;
+              // Get the full path on this machine
+              sb.setLength(0);
+              String startPath = iterator.getStartPath();
+              sb.append(startPath);
+              sb.append(relPath);
+              String fullPath = sb.toString();
+              PosixFile uf = new PosixFile(fullPath);
+              // Get the pack path
+              sb.setLength(0);
+              int lastSlashPos = startPath.lastIndexOf(File.separatorChar);
+              if (lastSlashPos == -1) {
+                sb.append(startPath);
+              } else {
+                sb.append(startPath, lastSlashPos, startPath.length());
+              }
+              sb.append(relPath);
+              String packPath = sb.toString();
+              // Verbose output
+              if (verboseQueue != null) {
+                try {
+                  verboseQueue.put(packPath);
+                } catch (InterruptedException err) {
+                  // Restore the interrupted status
+                  Thread.currentThread().interrupt();
+                  InterruptedIOException ioErr = new InterruptedIOException();
+                  ioErr.initCause(err);
+                  throw ioErr;
+                }
+              }
 
-							// Handle this file
-							Stat stat = uf.getStat();
-							if(stat.isRegularFile()) {
-								streamOut.writeByte(PackProtocol.REGULAR_FILE);
-								streamOut.writeCompressedUTF(packPath, iteratorAndSlot.slot);
-								int numLinks = stat.getNumberLinks();
-								if(numLinks==1) {
-									// No hard links
-									streamOut.writeLong(0);
-									streamOut.writeInt(stat.getUid());
-									streamOut.writeInt(stat.getGid());
-									streamOut.writeLong(stat.getMode());
-									streamOut.writeLong(stat.getModifyTime());
-									writeFile(uf, streamOut, buffer);
-								} else if(numLinks>1) {
-									// Has hard links
-									// Look for already found
-									Long device = stat.getDevice();
-									Long inode = stat.getInode();
-									Map<Long, LinkAndCount> inodeMap = deviceInodeIdMap.get(device);
-									if(inodeMap == null) deviceInodeIdMap.put(device, inodeMap = new HashMap<>());
-									LinkAndCount linkAndCount = inodeMap.get(inode);
-									if(linkAndCount != null) {
-										// Already sent, send the link ID and decrement our count
-										streamOut.writeLong(linkAndCount.linkId);
-										if(--linkAndCount.linkCount<=0) {
-											inodeMap.remove(inode);
-											// This keeps memory tighter but can increase overhead by making many new maps:
-											// if(inodeMap.isEmpty()) deviceInodeIdMap.remove(device);
-										}
-									} else {
-										// New file, send file data
-										long linkId = nextLinkId++;
-										streamOut.writeLong(linkId);
-										streamOut.writeInt(stat.getUid());
-										streamOut.writeInt(stat.getGid());
-										streamOut.writeLong(stat.getMode());
-										streamOut.writeLong(stat.getModifyTime());
-										streamOut.writeInt(numLinks);
-										writeFile(uf, streamOut, buffer);
-										inodeMap.put(inode, new LinkAndCount(linkId, numLinks-1));
-									}
-								} else throw new IOException("Invalid link count: "+numLinks);
-							} else if(stat.isDirectory()) {
-								streamOut.writeByte(PackProtocol.DIRECTORY);
-								streamOut.writeCompressedUTF(packPath, iteratorAndSlot.slot);
-								streamOut.writeInt(stat.getUid());
-								streamOut.writeInt(stat.getGid());
-								streamOut.writeLong(stat.getMode());
-								streamOut.writeLong(stat.getModifyTime());
-							} else if(stat.isSymLink()) {
-								streamOut.writeByte(PackProtocol.SYMLINK);
-								streamOut.writeCompressedUTF(packPath, iteratorAndSlot.slot);
-								streamOut.writeInt(stat.getUid());
-								streamOut.writeInt(stat.getGid());
-								streamOut.writeCompressedUTF(uf.readLink(), 63);
-							} else if(stat.isBlockDevice()) {
-								streamOut.writeByte(PackProtocol.BLOCK_DEVICE);
-								streamOut.writeCompressedUTF(packPath, iteratorAndSlot.slot);
-								streamOut.writeInt(stat.getUid());
-								streamOut.writeInt(stat.getGid());
-								streamOut.writeLong(stat.getMode());
-								streamOut.writeLong(stat.getDeviceIdentifier());
-							} else if(stat.isCharacterDevice()) {
-								streamOut.writeByte(PackProtocol.CHARACTER_DEVICE);
-								streamOut.writeCompressedUTF(packPath, iteratorAndSlot.slot);
-								streamOut.writeInt(stat.getUid());
-								streamOut.writeInt(stat.getGid());
-								streamOut.writeLong(stat.getMode());
-								streamOut.writeLong(stat.getDeviceIdentifier());
-							} else if(stat.isFifo()) {
-								streamOut.writeByte(PackProtocol.FIFO);
-								streamOut.writeCompressedUTF(packPath, iteratorAndSlot.slot);
-								streamOut.writeInt(stat.getUid());
-								streamOut.writeInt(stat.getGid());
-								streamOut.writeLong(stat.getMode());
-							} else if(stat.isSocket()) {
-								throw new IOException("Unable to pack socket: "+uf.getPath());
-							}
-							// Get the next file
-							File nextFile = iterator.getNextFile();
-							if(nextFile != null) {
-								String newRelPath = getRelativePath(nextFile, iterator);
-								List<FilesystemIteratorAndSlot> list = nextFiles.get(newRelPath);
-								if(list == null) {
-									list = new ArrayList<>(numDirectories);
-									nextFiles.put(newRelPath, list);
-								}
-								list.add(iteratorAndSlot);
-							}
-						}
-					}
-				} finally {
-					if(PackProtocol.BUFFER_SIZE==BufferManager.BUFFER_SIZE) BufferManager.release(buffer, false);
-				}
-				streamOut.writeByte(PackProtocol.END);
-			} finally {
-				streamOut.flush();
-				streamOut.close();
-			}
-			// TODO: If verbose, warn for any hard links that didn't all get packed
-		} finally {
-			// Wait for verbose queue to be empty
-			if(verboseThread != null) {
-				synchronized(verboseThreadRun) {
-					verboseThreadRun[0] = false;
-				}
-				try {
-					verboseThread.join();
-				} catch(InterruptedException err) {
-					// Restore the interrupted status
-					Thread.currentThread().interrupt();
-					InterruptedIOException ioErr = new InterruptedIOException();
-					ioErr.initCause(err);
-					throw ioErr;
-				}
-			}
-		}
-	}
+              // Handle this file
+              Stat stat = uf.getStat();
+              if (stat.isRegularFile()) {
+                streamOut.writeByte(PackProtocol.REGULAR_FILE);
+                streamOut.writeCompressedUTF(packPath, iteratorAndSlot.slot);
+                int numLinks = stat.getNumberLinks();
+                if (numLinks == 1) {
+                  // No hard links
+                  streamOut.writeLong(0);
+                  streamOut.writeInt(stat.getUid());
+                  streamOut.writeInt(stat.getGid());
+                  streamOut.writeLong(stat.getMode());
+                  streamOut.writeLong(stat.getModifyTime());
+                  writeFile(uf, streamOut, buffer);
+                } else if (numLinks>1) {
+                  // Has hard links
+                  // Look for already found
+                  Long device = stat.getDevice();
+                  Long inode = stat.getInode();
+                  Map<Long, LinkAndCount> inodeMap = deviceInodeIdMap.get(device);
+                  if (inodeMap == null) {
+                    deviceInodeIdMap.put(device, inodeMap = new HashMap<>());
+                  }
+                  LinkAndCount linkAndCount = inodeMap.get(inode);
+                  if (linkAndCount != null) {
+                    // Already sent, send the link ID and decrement our count
+                    streamOut.writeLong(linkAndCount.linkId);
+                    if (--linkAndCount.linkCount <= 0) {
+                      inodeMap.remove(inode);
+                      // This keeps memory tighter but can increase overhead by making many new maps:
+                      // if (inodeMap.isEmpty()) {
+                      //   deviceInodeIdMap.remove(device);
+                      // }
+                    }
+                  } else {
+                    // New file, send file data
+                    long linkId = nextLinkId++;
+                    streamOut.writeLong(linkId);
+                    streamOut.writeInt(stat.getUid());
+                    streamOut.writeInt(stat.getGid());
+                    streamOut.writeLong(stat.getMode());
+                    streamOut.writeLong(stat.getModifyTime());
+                    streamOut.writeInt(numLinks);
+                    writeFile(uf, streamOut, buffer);
+                    inodeMap.put(inode, new LinkAndCount(linkId, numLinks-1));
+                  }
+                } else {
+                  throw new IOException("Invalid link count: "+numLinks);
+                }
+              } else if (stat.isDirectory()) {
+                streamOut.writeByte(PackProtocol.DIRECTORY);
+                streamOut.writeCompressedUTF(packPath, iteratorAndSlot.slot);
+                streamOut.writeInt(stat.getUid());
+                streamOut.writeInt(stat.getGid());
+                streamOut.writeLong(stat.getMode());
+                streamOut.writeLong(stat.getModifyTime());
+              } else if (stat.isSymLink()) {
+                streamOut.writeByte(PackProtocol.SYMLINK);
+                streamOut.writeCompressedUTF(packPath, iteratorAndSlot.slot);
+                streamOut.writeInt(stat.getUid());
+                streamOut.writeInt(stat.getGid());
+                streamOut.writeCompressedUTF(uf.readLink(), 63);
+              } else if (stat.isBlockDevice()) {
+                streamOut.writeByte(PackProtocol.BLOCK_DEVICE);
+                streamOut.writeCompressedUTF(packPath, iteratorAndSlot.slot);
+                streamOut.writeInt(stat.getUid());
+                streamOut.writeInt(stat.getGid());
+                streamOut.writeLong(stat.getMode());
+                streamOut.writeLong(stat.getDeviceIdentifier());
+              } else if (stat.isCharacterDevice()) {
+                streamOut.writeByte(PackProtocol.CHARACTER_DEVICE);
+                streamOut.writeCompressedUTF(packPath, iteratorAndSlot.slot);
+                streamOut.writeInt(stat.getUid());
+                streamOut.writeInt(stat.getGid());
+                streamOut.writeLong(stat.getMode());
+                streamOut.writeLong(stat.getDeviceIdentifier());
+              } else if (stat.isFifo()) {
+                streamOut.writeByte(PackProtocol.FIFO);
+                streamOut.writeCompressedUTF(packPath, iteratorAndSlot.slot);
+                streamOut.writeInt(stat.getUid());
+                streamOut.writeInt(stat.getGid());
+                streamOut.writeLong(stat.getMode());
+              } else if (stat.isSocket()) {
+                throw new IOException("Unable to pack socket: "+uf.getPath());
+              }
+              // Get the next file
+              File nextFile = iterator.getNextFile();
+              if (nextFile != null) {
+                String newRelPath = getRelativePath(nextFile, iterator);
+                List<FilesystemIteratorAndSlot> list = nextFiles.get(newRelPath);
+                if (list == null) {
+                  list = new ArrayList<>(numDirectories);
+                  nextFiles.put(newRelPath, list);
+                }
+                list.add(iteratorAndSlot);
+              }
+            }
+          }
+        } finally {
+          if (PackProtocol.BUFFER_SIZE == BufferManager.BUFFER_SIZE) {
+            BufferManager.release(buffer, false);
+          }
+        }
+        streamOut.writeByte(PackProtocol.END);
+      } finally {
+        streamOut.flush();
+        streamOut.close();
+      }
+      // TODO: If verbose, warn for any hard links that didn't all get packed
+    } finally {
+      // Wait for verbose queue to be empty
+      if (verboseThread != null) {
+        synchronized (verboseThreadRun) {
+          verboseThreadRun[0] = false;
+        }
+        try {
+          verboseThread.join();
+        } catch (InterruptedException err) {
+          // Restore the interrupted status
+          Thread.currentThread().interrupt();
+          InterruptedIOException ioErr = new InterruptedIOException();
+          ioErr.initCause(err);
+          throw ioErr;
+        }
+      }
+    }
+  }
 
-	private static void writeFile(PosixFile uf, DataOutput out, byte[] buffer) throws IOException {
-		try (InputStream in = new FileInputStream(uf.getFile())) {
-			int ret;
-			while((ret=in.read(buffer, 0, PackProtocol.BUFFER_SIZE)) != -1) {
-				if(ret<0 || ret>Short.MAX_VALUE) throw new IOException("ret out of range: "+ret);
-				out.writeShort(ret);
-				out.write(buffer, 0, ret);
-			}
-			out.writeShort(-1);
-		}
-	}
+  private static void writeFile(PosixFile uf, DataOutput out, byte[] buffer) throws IOException {
+    try (InputStream in = new FileInputStream(uf.getFile())) {
+      int ret;
+      while ((ret=in.read(buffer, 0, PackProtocol.BUFFER_SIZE)) != -1) {
+        if (ret<0 || ret>Short.MAX_VALUE) {
+          throw new IOException("ret out of range: "+ret);
+        }
+        out.writeShort(ret);
+        out.write(buffer, 0, ret);
+      }
+      out.writeShort(-1);
+    }
+  }
 
-	/**
-	 * Gets the relative path for the provided file from the provided iterator.
-	 */
-	private static String getRelativePath(File file, FilesystemIterator iterator) throws IOException {
-		String path = file.getPath();
-		String prefix = iterator.getStartPath();
-		if(!path.startsWith(prefix)) throw new IOException("path doesn't start with prefix: path=\""+path+"\", prefix=\""+prefix+"\"");
-		return path.substring(prefix.length());
-	}
+  /**
+   * Gets the relative path for the provided file from the provided iterator.
+   */
+  private static String getRelativePath(File file, FilesystemIterator iterator) throws IOException {
+    String path = file.getPath();
+    String prefix = iterator.getStartPath();
+    if (!path.startsWith(prefix)) {
+      throw new IOException("path doesn't start with prefix: path=\""+path+"\", prefix=\""+prefix+"\"");
+    }
+    return path.substring(prefix.length());
+  }
 }

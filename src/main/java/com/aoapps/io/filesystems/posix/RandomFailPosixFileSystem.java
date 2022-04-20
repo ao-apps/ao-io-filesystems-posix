@@ -39,81 +39,87 @@ import java.util.Random;
  */
 public class RandomFailPosixFileSystem extends RandomFailFileSystem implements PosixFileSystem {
 
-	public static interface UnixFailureProbabilities extends FailureProbabilities {
-		default float getStat() {
-			return 0.00001f;
-		}
-		default float getCreateFileMode() {
-			return getCreateFile();
-		}
-		default float getCreateDirectoryMode() {
-			return getCreateDirectory();
-		}
-	}
+  public static interface UnixFailureProbabilities extends FailureProbabilities {
+    default float getStat() {
+      return 0.00001f;
+    }
+    default float getCreateFileMode() {
+      return getCreateFile();
+    }
+    default float getCreateDirectoryMode() {
+      return getCreateDirectory();
+    }
+  }
 
-	private final PosixFileSystem wrapped;
-	private final UnixFailureProbabilities unixFailureProbabilities;
+  private final PosixFileSystem wrapped;
+  private final UnixFailureProbabilities unixFailureProbabilities;
 
-	/**
-	 * @param  fastRandom  A fast pseudo-random number generator for non-cryptographic purposes.
-	 */
-	public RandomFailPosixFileSystem(
-		PosixFileSystem wrappedFileSystem,
-		UnixFailureProbabilities unixFailureProbabilities,
-		Random fastRandom
-	) {
-		super(
-			wrappedFileSystem,
-			unixFailureProbabilities,
-			fastRandom
-		);
-		this.wrapped = wrappedFileSystem;
-		this.unixFailureProbabilities = unixFailureProbabilities;
-	}
+  /**
+   * @param  fastRandom  A fast pseudo-random number generator for non-cryptographic purposes.
+   */
+  public RandomFailPosixFileSystem(
+    PosixFileSystem wrappedFileSystem,
+    UnixFailureProbabilities unixFailureProbabilities,
+    Random fastRandom
+  ) {
+    super(
+      wrappedFileSystem,
+      unixFailureProbabilities,
+      fastRandom
+    );
+    this.wrapped = wrappedFileSystem;
+    this.unixFailureProbabilities = unixFailureProbabilities;
+  }
 
-	/**
-	 * A fast pseudo-random number generator for non-cryptographic purposes.
-	 */
-	private static final Random defaultFastRandom = new Random(IoUtils.bufferToLong(new SecureRandom().generateSeed(Long.BYTES)));
+  /**
+   * A fast pseudo-random number generator for non-cryptographic purposes.
+   */
+  private static final Random defaultFastRandom = new Random(IoUtils.bufferToLong(new SecureRandom().generateSeed(Long.BYTES)));
 
-	/**
-	 * Uses default probabilities and a default fast pseudo-random number generator for non-cryptographic purposes.
-	 *
-	 * @see #defaultFastRandom
-	 */
-	public RandomFailPosixFileSystem(PosixFileSystem wrappedFileSystem) {
-		this(
-			wrappedFileSystem,
-			new UnixFailureProbabilities() {
-				// All defaults
-			},
-			defaultFastRandom
-		);
-	}
+  /**
+   * Uses default probabilities and a default fast pseudo-random number generator for non-cryptographic purposes.
+   *
+   * @see #defaultFastRandom
+   */
+  public RandomFailPosixFileSystem(PosixFileSystem wrappedFileSystem) {
+    this(
+      wrappedFileSystem,
+      new UnixFailureProbabilities() {
+        // All defaults
+      },
+      defaultFastRandom
+    );
+  }
 
-	/**
-	 * Delegates to the wrapped file system, but with a random chance of fail.
-	 */
-	@Override
-	public Stat stat(Path path) throws RandomFailIOException, IOException {
-		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		randomFail(unixFailureProbabilities.getStat());
-		return wrapped.stat(unwrapPath(path));
-	}
+  /**
+   * Delegates to the wrapped file system, but with a random chance of fail.
+   */
+  @Override
+  public Stat stat(Path path) throws RandomFailIOException, IOException {
+    if (path.getFileSystem() != this) {
+      throw new IllegalArgumentException();
+    }
+    randomFail(unixFailureProbabilities.getStat());
+    return wrapped.stat(unwrapPath(path));
+  }
 
-	@Override
-	public Path createFile(Path path, int mode) throws IOException {
-		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		randomFail(unixFailureProbabilities.getCreateFileMode());
-		wrapped.createFile(unwrapPath(path), mode);
-		return path;
-	}
+  @Override
+  public Path createFile(Path path, int mode) throws IOException {
+    if (path.getFileSystem() != this) {
+      throw new IllegalArgumentException();
+    }
+    randomFail(unixFailureProbabilities.getCreateFileMode());
+    wrapped.createFile(unwrapPath(path), mode);
+    return path;
+  }
 
-	@Override
-	public Path createDirectory(Path path, int mode) throws IOException {
-		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		randomFail(unixFailureProbabilities.getCreateDirectoryMode());
-		wrapped.createDirectory(unwrapPath(path), mode);
-		return path;
-	}
+  @Override
+  public Path createDirectory(Path path, int mode) throws IOException {
+    if (path.getFileSystem() != this) {
+      throw new IllegalArgumentException();
+    }
+    randomFail(unixFailureProbabilities.getCreateDirectoryMode());
+    wrapped.createDirectory(unwrapPath(path), mode);
+    return path;
+  }
 }

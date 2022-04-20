@@ -33,71 +33,79 @@ import java.nio.file.FileSystems;
 
 /**
  * The Unix file system implement by the PosixFile.
- * 
+ *
  * @see PosixFile
  *
  * @author  AO Industries, Inc.
  */
 public class DefaultPosixFileSystem extends JavaFileSystem implements PosixFileSystem {
 
-	private static final DefaultPosixFileSystem instance = new DefaultPosixFileSystem();
+  private static final DefaultPosixFileSystem instance = new DefaultPosixFileSystem();
 
-	/**
-	 * Only one instance is created.
-	 */
-	public static DefaultPosixFileSystem getInstance() {
-		return instance;
-	}
+  /**
+   * Only one instance is created.
+   */
+  public static DefaultPosixFileSystem getInstance() {
+    return instance;
+  }
 
-	protected DefaultPosixFileSystem() {
-		super(FileSystems.getDefault());
-		if(!isSingleRoot) throw new AssertionError("Default Unix filesystem must always be single root");
-	}
+  protected DefaultPosixFileSystem() {
+    super(FileSystems.getDefault());
+    if (!isSingleRoot) {
+      throw new AssertionError("Default Unix filesystem must always be single root");
+    }
+  }
 
-	/**
-	 * @see  PosixFileSystem#checkSubPath(com.aoapps.io.filesystems.Path, java.lang.String)
-	 */
-	@Override
-	public void checkSubPath(Path parent, String name) throws InvalidPathException {
-		PosixFileSystem.super.checkSubPath(parent, name);
-	}
+  /**
+   * @see  PosixFileSystem#checkSubPath(com.aoapps.io.filesystems.Path, java.lang.String)
+   */
+  @Override
+  public void checkSubPath(Path parent, String name) throws InvalidPathException {
+    PosixFileSystem.super.checkSubPath(parent, name);
+  }
 
-	/**
-	 * Gets a PosixFile for the given path.
-	 * 
-	 * @see #getFile(com.aoapps.io.filesystems.Path)
-	 */
-	private PosixFile getPosixFile(Path path) throws IOException {
-		assert path.getFileSystem() == this;
-		return new PosixFile(getJavaPath(path).toFile());
-	}
+  /**
+   * Gets a PosixFile for the given path.
+   *
+   * @see #getFile(com.aoapps.io.filesystems.Path)
+   */
+  private PosixFile getPosixFile(Path path) throws IOException {
+    assert path.getFileSystem() == this;
+    return new PosixFile(getJavaPath(path).toFile());
+  }
 
-	@Override
-	public Stat stat(Path path) throws IOException {
-		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		return getPosixFile(path).getStat();
-	}
+  @Override
+  public Stat stat(Path path) throws IOException {
+    if (path.getFileSystem() != this) {
+      throw new IllegalArgumentException();
+    }
+    return getPosixFile(path).getStat();
+  }
 
-	/**
-	 * TODO: This is not an atomic implementation.  Use the Java-provided interface,
-	 * but beware it does not seem to have support for the sticky bits.
-	 */
-	@Override
-	public Path createFile(Path path, int mode) throws IOException {
-		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		super.createFile(path);
-		getPosixFile(path).setMode(mode);
-		return path;
-	}
+  /**
+   * TODO: This is not an atomic implementation.  Use the Java-provided interface,
+   * but beware it does not seem to have support for the sticky bits.
+   */
+  @Override
+  public Path createFile(Path path, int mode) throws IOException {
+    if (path.getFileSystem() != this) {
+      throw new IllegalArgumentException();
+    }
+    super.createFile(path);
+    getPosixFile(path).setMode(mode);
+    return path;
+  }
 
-	/**
-	 * TODO: This is not an atomic implementation.  Use the Java-provided interface,
-	 * but beware it does not seem to have support for the sticky bits.
-	 */
-	@Override
-	public Path createDirectory(Path path, int mode) throws IOException {
-		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		getPosixFile(path).mkdir(false, mode);
-		return path;
-	}
+  /**
+   * TODO: This is not an atomic implementation.  Use the Java-provided interface,
+   * but beware it does not seem to have support for the sticky bits.
+   */
+  @Override
+  public Path createDirectory(Path path, int mode) throws IOException {
+    if (path.getFileSystem() != this) {
+      throw new IllegalArgumentException();
+    }
+    getPosixFile(path).mkdir(false, mode);
+    return path;
+  }
 }

@@ -36,29 +36,35 @@ import org.apache.commons.lang3.NotImplementedException;
  */
 public class TempPosixFileSystem extends TempFileSystem implements PosixFileSystem {
 
-	/**
-	 * @see  PosixFileSystem#checkSubPath(com.aoapps.io.filesystems.Path, java.lang.String)
-	 */
-	@Override
-	public void checkSubPath(Path parent, String name) throws InvalidPathException {
-		PosixFileSystem.super.checkSubPath(parent, name);
-	}
+  /**
+   * @see  PosixFileSystem#checkSubPath(com.aoapps.io.filesystems.Path, java.lang.String)
+   */
+  @Override
+  public void checkSubPath(Path parent, String name) throws InvalidPathException {
+    PosixFileSystem.super.checkSubPath(parent, name);
+  }
 
-	@Override
-	public Stat stat(Path path) {
-		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		throw new NotImplementedException("TODO");
-	}
+  @Override
+  public Stat stat(Path path) {
+    if (path.getFileSystem() != this) {
+      throw new IllegalArgumentException();
+    }
+    throw new NotImplementedException("TODO");
+  }
 
-	@Override
-	public Path createFile(Path path, int mode) {
-		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		throw new NotImplementedException("TODO");
-	}
+  @Override
+  public Path createFile(Path path, int mode) {
+    if (path.getFileSystem() != this) {
+      throw new IllegalArgumentException();
+    }
+    throw new NotImplementedException("TODO");
+  }
 
-	@Override
-	public Path createDirectory(Path path, int mode) {
-		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		throw new NotImplementedException("TODO");
-	}
+  @Override
+  public Path createDirectory(Path path, int mode) {
+    if (path.getFileSystem() != this) {
+      throw new IllegalArgumentException();
+    }
+    throw new NotImplementedException("TODO");
+  }
 }

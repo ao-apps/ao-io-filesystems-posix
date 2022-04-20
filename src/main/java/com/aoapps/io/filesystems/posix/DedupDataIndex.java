@@ -188,338 +188,348 @@ import java.util.logging.Logger;
  */
 public class DedupDataIndex {
 
-	private static final Logger logger = Logger.getLogger(DedupDataIndex.class.getName());
+  private static final Logger logger = Logger.getLogger(DedupDataIndex.class.getName());
 
-	/**
-	 * The maximum link count before creating a new copy of the data.
-	 * ext4 has a maximum of 65000, so this leaves some unused link count for
-	 * other administrative purposes.
-	 */
-	private static final int FILE_SYSTEM_MAX_LINK_COUNT = 60000;
+  /**
+   * The maximum link count before creating a new copy of the data.
+   * ext4 has a maximum of 65000, so this leaves some unused link count for
+   * other administrative purposes.
+   */
+  private static final int FILE_SYSTEM_MAX_LINK_COUNT = 60000;
 
-	/**
-	 * The number of links at which a second copy of the data is automatically created.
-	 */
-	private static final int DUPLICATE_LINK_COUNT = 100;
+  /**
+   * The number of links at which a second copy of the data is automatically created.
+   */
+  private static final int DUPLICATE_LINK_COUNT = 100;
 
-	/**
-	 * The number of links when switching from duplicate storage back to single
-	 * storage.
-	 */
-	private static final int COALESCE_LINK_COUNT = 50;
+  /**
+   * The number of links when switching from duplicate storage back to single
+   * storage.
+   */
+  private static final int COALESCE_LINK_COUNT = 50;
 
-	/**
-	 * The page size assumed for the underlying file system.  This affects when
-	 * gzip compressed may be attempted.
-	 */
-	private static final int FILE_SYSTEM_BLOCK_SIZE = 4096;
+  /**
+   * The page size assumed for the underlying file system.  This affects when
+   * gzip compressed may be attempted.
+   */
+  private static final int FILE_SYSTEM_BLOCK_SIZE = 4096;
 
-	/**
-	 * The number of bits in an MD5 sum.
-	 */
-	private static final int MD5_SUM_BITS = 128;
+  /**
+   * The number of bits in an MD5 sum.
+   */
+  private static final int MD5_SUM_BITS = 128;
 
-	/**
-	 * The number of bits per hex character.
-	 */
-	private static final int HEX_BITS = 4;
+  /**
+   * The number of bits per hex character.
+   */
+  private static final int HEX_BITS = 4;
 
-	/**
-	 * The number of bits of the MD5 sum used for the directory hash.
-	 * This must be a multiple of 4 for the hex encoding of filenames.
-	 */
-	private static final int DIRECTORY_HASH_BITS = 16;
-	static {
-		assert DIRECTORY_HASH_BITS >= HEX_BITS && DIRECTORY_HASH_BITS <= (MD5_SUM_BITS - HEX_BITS);
-		assert (DIRECTORY_HASH_BITS & (HEX_BITS - 1)) == 0 : "This must be a multiple of " + HEX_BITS + " for the hex encoding of filenames.";
-	}
+  /**
+   * The number of bits of the MD5 sum used for the directory hash.
+   * This must be a multiple of 4 for the hex encoding of filenames.
+   */
+  private static final int DIRECTORY_HASH_BITS = 16;
+  static {
+    assert DIRECTORY_HASH_BITS >= HEX_BITS && DIRECTORY_HASH_BITS <= (MD5_SUM_BITS - HEX_BITS);
+    assert (DIRECTORY_HASH_BITS & (HEX_BITS - 1)) == 0 : "This must be a multiple of " + HEX_BITS + " for the hex encoding of filenames.";
+  }
 
-	/**
-	 * The number of hex characters in the directory hash filename.
-	 */
-	private static final int DIRECTORY_HASH_CHARACTERS = DIRECTORY_HASH_BITS / HEX_BITS;
-	static {
-		assert DIRECTORY_HASH_CHARACTERS >=1;
-	}
+  /**
+   * The number of hex characters in the directory hash filename.
+   */
+  private static final int DIRECTORY_HASH_CHARACTERS = DIRECTORY_HASH_BITS / HEX_BITS;
+  static {
+    assert DIRECTORY_HASH_CHARACTERS >= 1;
+  }
 
-	/**
-	 * The filename used to lock directories.
-	 */
-	private static final String LOCK_FILE_NAME = "lock";
+  /**
+   * The filename used to lock directories.
+   */
+  private static final String LOCK_FILE_NAME = "lock";
 
-	/**
-	 * The index directory permissions.
-	 */
-	private static final int DIRECTORY_MODE = 0700;
+  /**
+   * The index directory permissions.
+   */
+  private static final int DIRECTORY_MODE = 0700;
 
-	/**
-	 * The index file permissions.
-	 */
-	private static final int FILE_MODE = 0600;
+  /**
+   * The index file permissions.
+   */
+  private static final int FILE_MODE = 0600;
 
-	/**
-	 * The number of milliseconds between file verifications.
-	 */
-	private static final long VERIFICATION_INTERVAL = 7L * 24L * 60L * 60L * 1000L; // 7 Days
+  /**
+   * The number of milliseconds between file verifications.
+   */
+  private static final long VERIFICATION_INTERVAL = 7L * 24L * 60L * 60L * 1000L; // 7 Days
 
 
-	// <editor-fold defaultstate="collapsed" desc="Obtaining instances">
-	private static class InstanceKey {
+  // <editor-fold defaultstate="collapsed" desc="Obtaining instances">
+  private static class InstanceKey {
 
-		private final PosixFileSystem fileSystem;
-		private final Path dataIndexDir;
+    private final PosixFileSystem fileSystem;
+    private final Path dataIndexDir;
 
-		private InstanceKey(PosixFileSystem fileSystem, Path dataIndexDir) {
-			if(fileSystem != dataIndexDir.getFileSystem()) throw new IllegalArgumentException("fileSystem and path.fileSystem do not match");
-			this.fileSystem = fileSystem;
-			this.dataIndexDir = dataIndexDir;
-		}
+    private InstanceKey(PosixFileSystem fileSystem, Path dataIndexDir) {
+      if (fileSystem != dataIndexDir.getFileSystem()) {
+        throw new IllegalArgumentException("fileSystem and path.fileSystem do not match");
+      }
+      this.fileSystem = fileSystem;
+      this.dataIndexDir = dataIndexDir;
+    }
 
-		@Override
-		public int hashCode() {
-			return dataIndexDir.getFileSystem().hashCode() * 31 + dataIndexDir.hashCode();
-		}
+    @Override
+    public int hashCode() {
+      return dataIndexDir.getFileSystem().hashCode() * 31 + dataIndexDir.hashCode();
+    }
 
-		@Override
-		public boolean equals(Object obj) {
-			if(!(obj instanceof InstanceKey)) return false;
-			InstanceKey other = (InstanceKey)obj;
-			return
-				fileSystem == other.fileSystem
-				&& dataIndexDir.equals(other.dataIndexDir)
-			;
-		}
-	}
+    @Override
+    public boolean equals(Object obj) {
+      if (!(obj instanceof InstanceKey)) {
+        return false;
+      }
+      InstanceKey other = (InstanceKey)obj;
+      return
+        fileSystem == other.fileSystem
+        && dataIndexDir.equals(other.dataIndexDir)
+      ;
+    }
+  }
 
-	private static final Map<InstanceKey, DedupDataIndex> instances = new HashMap<>();
+  private static final Map<InstanceKey, DedupDataIndex> instances = new HashMap<>();
 
-	/**
-	 * Gets the index for the given index directory.
-	 * Only one instance is created per file system instance and unique path.
-	 */
-	public static DedupDataIndex getInstance(PosixFileSystem fileSystem, Path dataIndexDir) throws IOException {
-		synchronized(instances) {
-			InstanceKey key = new InstanceKey(fileSystem, dataIndexDir);
-			DedupDataIndex instance = instances.get(key);
-			if(instance == null) {
-				instance = new DedupDataIndex(fileSystem, dataIndexDir);
-				instances.put(key, instance);
-			}
-			return instance;
-		}
-	}
-	// </editor-fold>
+  /**
+   * Gets the index for the given index directory.
+   * Only one instance is created per file system instance and unique path.
+   */
+  public static DedupDataIndex getInstance(PosixFileSystem fileSystem, Path dataIndexDir) throws IOException {
+    synchronized (instances) {
+      InstanceKey key = new InstanceKey(fileSystem, dataIndexDir);
+      DedupDataIndex instance = instances.get(key);
+      if (instance == null) {
+        instance = new DedupDataIndex(fileSystem, dataIndexDir);
+        instances.put(key, instance);
+      }
+      return instance;
+    }
+  }
+  // </editor-fold>
 
-	private final PosixFileSystem fileSystem;
-	private final Path dataIndexDir;
+  private final PosixFileSystem fileSystem;
+  private final Path dataIndexDir;
 
-	private DedupDataIndex(PosixFileSystem fileSystem, Path dataIndexDir) throws IOException {
-		this.fileSystem = fileSystem;
-		this.dataIndexDir = dataIndexDir;
+  private DedupDataIndex(PosixFileSystem fileSystem, Path dataIndexDir) throws IOException {
+    this.fileSystem = fileSystem;
+    this.dataIndexDir = dataIndexDir;
 
-		// Create the index directory if missing
-		Stat stat = fileSystem.stat(dataIndexDir);
-		if(!stat.exists()) {
-			fileSystem.createDirectory(dataIndexDir, DIRECTORY_MODE);
-		} else if(!stat.isDirectory()) {
-			throw new IOException("Not a directory: " + this.dataIndexDir);
-		}
-	}
+    // Create the index directory if missing
+    Stat stat = fileSystem.stat(dataIndexDir);
+    if (!stat.exists()) {
+      fileSystem.createDirectory(dataIndexDir, DIRECTORY_MODE);
+    } else if (!stat.isDirectory()) {
+      throw new IOException("Not a directory: " + this.dataIndexDir);
+    }
+  }
 
-	/**
-	 * The file system containing this index.
-	 */
-	public PosixFileSystem getFileSystem() {
-		return fileSystem;
-	}
+  /**
+   * The file system containing this index.
+   */
+  public PosixFileSystem getFileSystem() {
+    return fileSystem;
+  }
 
-	/**
-	 * Returns the path (within the file system) containing this index.
-	 */
-	public Path getDataIndexDir() {
-		return dataIndexDir;
-	}
+  /**
+   * Returns the path (within the file system) containing this index.
+   */
+  public Path getDataIndexDir() {
+    return dataIndexDir;
+  }
 
-	/**
-	 * Parses a hash directory name.
-	 */
-	private static int parseHashDir(String hex) throws NumberFormatException {
-		if(hex.length() != DIRECTORY_HASH_CHARACTERS) throw new NumberFormatException("Hash directory must be " + DIRECTORY_HASH_CHARACTERS + " characters long: " + hex);
-		int total = 0;
-		int shift = HEX_BITS * DIRECTORY_HASH_CHARACTERS;
-		int pos = 0;
-		do {
-			shift -= HEX_BITS;
-			@SuppressWarnings("deprecation")
-			int hexVal = Strings.getHex(hex.charAt(pos++));
-			total |= hexVal << shift;
-		} while(shift > 0);
-		return total;
-	}
+  /**
+   * Parses a hash directory name.
+   */
+  private static int parseHashDir(String hex) throws NumberFormatException {
+    if (hex.length() != DIRECTORY_HASH_CHARACTERS) {
+      throw new NumberFormatException("Hash directory must be " + DIRECTORY_HASH_CHARACTERS + " characters long: " + hex);
+    }
+    int total = 0;
+    int shift = HEX_BITS * DIRECTORY_HASH_CHARACTERS;
+    int pos = 0;
+    do {
+      shift -= HEX_BITS;
+      @SuppressWarnings("deprecation")
+      int hexVal = Strings.getHex(hex.charAt(pos++));
+      total |= hexVal << shift;
+    } while (shift > 0);
+    return total;
+  }
 
-	// <editor-fold defaultstate="collapsed" desc="Hash directory locking">
-	/**
-	 * Obtains a file lock when created.
-	 */
-	private class HashDirectoryLock {
+  // <editor-fold defaultstate="collapsed" desc="Hash directory locking">
+  /**
+   * Obtains a file lock when created.
+   */
+  private class HashDirectoryLock {
 
-		private final String lockDirName;
-		private final Path lockPath;
+    private final String lockDirName;
+    private final Path lockPath;
 
-		private HashDirectoryLock(int hashDir) throws IOException {
-			//this.hashDir = hashDir;
-			StringBuilder name = new StringBuilder(DIRECTORY_HASH_CHARACTERS);
-			int shift = HEX_BITS * DIRECTORY_HASH_CHARACTERS;
-			do {
-				shift -= HEX_BITS;
-				@SuppressWarnings("deprecation")
-				char hexChar = Strings.getHexChar(hashDir >>> shift);
-				name.append(hexChar);
-			} while(shift > 0);
-			this.lockDirName = name.toString();
-			this.lockPath = new Path(
-				new Path(dataIndexDir, lockDirName),
-				LOCK_FILE_NAME
-			);
-			Stat stat = fileSystem.stat(lockPath);
-			if(!stat.exists()) {
-				try {
-					fileSystem.createFile(lockPath, FILE_MODE);
-				} catch(IOException e) {
-					// Check race condition: OK if some other process created the file
-					stat = fileSystem.stat(lockPath);
-					if(!stat.exists() || !stat.isRegularFile()) throw e;
-				}
-			} else if(!stat.isRegularFile()) {
-				throw new FileSystemException("Not a regular file: " + lockPath);
-			}
-		}
+    private HashDirectoryLock(int hashDir) throws IOException {
+      //this.hashDir = hashDir;
+      StringBuilder name = new StringBuilder(DIRECTORY_HASH_CHARACTERS);
+      int shift = HEX_BITS * DIRECTORY_HASH_CHARACTERS;
+      do {
+        shift -= HEX_BITS;
+        @SuppressWarnings("deprecation")
+        char hexChar = Strings.getHexChar(hashDir >>> shift);
+        name.append(hexChar);
+      } while (shift > 0);
+      this.lockDirName = name.toString();
+      this.lockPath = new Path(
+        new Path(dataIndexDir, lockDirName),
+        LOCK_FILE_NAME
+      );
+      Stat stat = fileSystem.stat(lockPath);
+      if (!stat.exists()) {
+        try {
+          fileSystem.createFile(lockPath, FILE_MODE);
+        } catch (IOException e) {
+          // Check race condition: OK if some other process created the file
+          stat = fileSystem.stat(lockPath);
+          if (!stat.exists() || !stat.isRegularFile()) {
+            throw e;
+          }
+        }
+      } else if (!stat.isRegularFile()) {
+        throw new FileSystemException("Not a regular file: " + lockPath);
+      }
+    }
 
-		@Override
-		public String toString() {
-			return
-				DedupDataIndex.class.getName()
-				+ '('
-				+ DedupDataIndex.this.dataIndexDir
-				+ ").hashLock("
-				+ lockDirName
-				+ ')'
-			;
-		}
+    @Override
+    public String toString() {
+      return
+        DedupDataIndex.class.getName()
+        + '('
+        + DedupDataIndex.this.dataIndexDir
+        + ").hashLock("
+        + lockDirName
+        + ')'
+      ;
+    }
 
-		/**
-		 * The currently opened lock.
-		 */
-		private FileLock lock;
+    /**
+     * The currently opened lock.
+     */
+    private FileLock lock;
 
-		/**
-		 * The thread currently holding the lock.
-		 */
-		private Thread thread;
+    /**
+     * The thread currently holding the lock.
+     */
+    private Thread thread;
 
-		/**
-		 * Gets an exclusive lock on this hash directory.
-		 *
-		 * @see  FileSystem#lock(com.aoapps.io.filesystems.Path)
-		 */
-		private FileLock lock() throws IOException {
-			return fileSystem.lock(lockPath);
-		}
-	}
+    /**
+     * Gets an exclusive lock on this hash directory.
+     *
+     * @see  FileSystem#lock(com.aoapps.io.filesystems.Path)
+     */
+    private FileLock lock() throws IOException {
+      return fileSystem.lock(lockPath);
+    }
+  }
 
-	/**
-	 * Per hash locks (one for each hash sub directory).
-	 */
-	private final HashDirectoryLock[] hashLocks = new HashDirectoryLock[2 ^ DIRECTORY_HASH_BITS];
+  /**
+   * Per hash locks (one for each hash sub directory).
+   */
+  private final HashDirectoryLock[] hashLocks = new HashDirectoryLock[2 ^ DIRECTORY_HASH_BITS];
 
-	/**
-	 * Gets the lock for a specific hash directory, never removed once created.
-	 */
-	private HashDirectoryLock getHashLock(int hashDir) throws IOException {
-		synchronized(hashLocks) {
-			HashDirectoryLock hashLock = hashLocks[hashDir];
-			if(hashLock == null) {
-				hashLock = new HashDirectoryLock(hashDir);
-				hashLocks[hashDir] = hashLock;
-			}
-			return hashLock;
-		}
-	}
-	// </editor-fold>
+  /**
+   * Gets the lock for a specific hash directory, never removed once created.
+   */
+  private HashDirectoryLock getHashLock(int hashDir) throws IOException {
+    synchronized (hashLocks) {
+      HashDirectoryLock hashLock = hashLocks[hashDir];
+      if (hashLock == null) {
+        hashLock = new HashDirectoryLock(hashDir);
+        hashLocks[hashDir] = hashLock;
+      }
+      return hashLock;
+    }
+  }
+  // </editor-fold>
 
-	// <editor-fold defaultstate="collapsed" desc="Background verification">
-	/**
-	 * Cleans all orphaned index files.  The lock is only held briefly one file
-	 * at a time, so other I/O can be interleaved with this cleanup process.
-	 * It is possible that new orphans created during the cleanup will not be
-	 * cleaned-up on this pass.
-	 * <p>
-	 * For long-lived data indexes, it is good to run this once per day during low usage times.
-	 * </p>
-	 * @param  quick  When true, performs a quick pass to clean orphaned data
-	 *                only, but does not verify MD5 sums.
-	 */
-	@SuppressWarnings("CallToThreadYield")
-	public void verify(boolean quick) throws IOException {
-		try (PathIterator dataIndexIter = fileSystem.list(dataIndexDir)) {
-			while(dataIndexIter.hasNext()) {
-				Path hashDirPath = dataIndexIter.next();
-				String hashDirFilename = hashDirPath.getName();
-				// Skip lock files
-				if(!LOCK_FILE_NAME.equals(hashDirFilename)) {
-					int hashDir;
-					try {
-						hashDir = parseHashDir(hashDirFilename);
-					} catch(NumberFormatException e) {
-						logger.log(Level.WARNING, "Skipping non-hash directory: " + hashDirPath, e);
-						continue;
-					}
-					final HashDirectoryLock hashDirLock = getHashLock(hashDir);
-					PathIterator list = null;
-					try {
-						try (FileLock lock = hashDirLock.lock()) {
-							assert lock != null; // Java 9: fix: Avoid warning: "auto-closeable resource lock is never referenced in body of corresponding try statement"
-							list = fileSystem.list(hashDirPath);
-						} catch(NoSuchFileException | NotDirectoryException e) {
-							// These are OK since we're working on a live file system
-							// list remains null
-						}
-						if(list != null) {
-							while(list.hasNext()) {
-								Path file = list.next();
-								String filename = file.getName();
-								// Skip lock files
-								if(!LOCK_FILE_NAME.equals(filename)) {
-									try (FileLock lock = hashDirLock.lock()) {
-										assert lock != null; // Java 9: fix: Avoid warning: "auto-closeable resource lock is never referenced in body of corresponding try statement"
-										Stat stat = fileSystem.stat(file);
-										// Must still exist
-										if(stat.exists()) {
-											if(
-												// Must be a regular file
-												stat.isRegularFile()
-												// Must have a link count of one
-												&& stat.getNumberLinks() == 1
-											) {
-												logger.log(Level.WARNING, "Removing orphan: " + file);
-												fileSystem.delete(file);
-												// TODO: Renumber any files after this one by both collision# and link#
-												//       (or move highest number into first empty slot)
-											}
-										}
-									}
-									// We'll play extra nice by letting others grab the lock before
-									// going on to the next file.
-									Thread.yield();
-								}
-							}
-						}
-					} finally {
-						if(list != null) list.close();
-					}
-				}
-			}
-		}
-	}
-	// </editor-fold>
+  // <editor-fold defaultstate="collapsed" desc="Background verification">
+  /**
+   * Cleans all orphaned index files.  The lock is only held briefly one file
+   * at a time, so other I/O can be interleaved with this cleanup process.
+   * It is possible that new orphans created during the cleanup will not be
+   * cleaned-up on this pass.
+   * <p>
+   * For long-lived data indexes, it is good to run this once per day during low usage times.
+   * </p>
+   * @param  quick  When true, performs a quick pass to clean orphaned data
+   *                only, but does not verify MD5 sums.
+   */
+  @SuppressWarnings("CallToThreadYield")
+  public void verify(boolean quick) throws IOException {
+    try (PathIterator dataIndexIter = fileSystem.list(dataIndexDir)) {
+      while (dataIndexIter.hasNext()) {
+        Path hashDirPath = dataIndexIter.next();
+        String hashDirFilename = hashDirPath.getName();
+        // Skip lock files
+        if (!LOCK_FILE_NAME.equals(hashDirFilename)) {
+          int hashDir;
+          try {
+            hashDir = parseHashDir(hashDirFilename);
+          } catch (NumberFormatException e) {
+            logger.log(Level.WARNING, "Skipping non-hash directory: " + hashDirPath, e);
+            continue;
+          }
+          final HashDirectoryLock hashDirLock = getHashLock(hashDir);
+          PathIterator list = null;
+          try {
+            try (FileLock lock = hashDirLock.lock()) {
+              assert lock != null; // Java 9: fix: Avoid warning: "auto-closeable resource lock is never referenced in body of corresponding try statement"
+              list = fileSystem.list(hashDirPath);
+            } catch (NoSuchFileException | NotDirectoryException e) {
+              // These are OK since we're working on a live file system
+              // list remains null
+            }
+            if (list != null) {
+              while (list.hasNext()) {
+                Path file = list.next();
+                String filename = file.getName();
+                // Skip lock files
+                if (!LOCK_FILE_NAME.equals(filename)) {
+                  try (FileLock lock = hashDirLock.lock()) {
+                    assert lock != null; // Java 9: fix: Avoid warning: "auto-closeable resource lock is never referenced in body of corresponding try statement"
+                    Stat stat = fileSystem.stat(file);
+                    // Must still exist
+                    if (stat.exists()) {
+                      if (
+                        // Must be a regular file
+                        stat.isRegularFile()
+                        // Must have a link count of one
+                        && stat.getNumberLinks() == 1
+                      ) {
+                        logger.log(Level.WARNING, "Removing orphan: " + file);
+                        fileSystem.delete(file);
+                        // TODO: Renumber any files after this one by both collision# and link#
+                        //       (or move highest number into first empty slot)
+                      }
+                    }
+                  }
+                  // We'll play extra nice by letting others grab the lock before
+                  // going on to the next file.
+                  Thread.yield();
+                }
+              }
+            }
+          } finally {
+            if (list != null) {
+              list.close();
+            }
+          }
+        }
+      }
+    }
+  }
+  // </editor-fold>
 }

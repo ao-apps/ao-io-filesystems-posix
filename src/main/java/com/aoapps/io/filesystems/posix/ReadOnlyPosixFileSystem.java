@@ -36,31 +36,37 @@ import java.nio.file.ReadOnlyFileSystemException;
  */
 public class ReadOnlyPosixFileSystem extends ReadOnlyFileSystem implements PosixFileSystem {
 
-	private final PosixFileSystem wrapped;
+  private final PosixFileSystem wrapped;
 
-	public ReadOnlyPosixFileSystem(PosixFileSystem wrapped) {
-		super(wrapped);
-		this.wrapped = wrapped;
-	}
+  public ReadOnlyPosixFileSystem(PosixFileSystem wrapped) {
+    super(wrapped);
+    this.wrapped = wrapped;
+  }
 
-	/**
-	 * Delegates to the wrapped file system.
-	 */
-	@Override
-	public Stat stat(Path path) throws IOException {
-		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		return wrapped.stat(unwrapPath(path));
-	}
+  /**
+   * Delegates to the wrapped file system.
+   */
+  @Override
+  public Stat stat(Path path) throws IOException {
+    if (path.getFileSystem() != this) {
+      throw new IllegalArgumentException();
+    }
+    return wrapped.stat(unwrapPath(path));
+  }
 
-	@Override
-	public Path createFile(Path path, int mode) throws ReadOnlyFileSystemException {
-		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		throw new ReadOnlyFileSystemException();
-	}
+  @Override
+  public Path createFile(Path path, int mode) throws ReadOnlyFileSystemException {
+    if (path.getFileSystem() != this) {
+      throw new IllegalArgumentException();
+    }
+    throw new ReadOnlyFileSystemException();
+  }
 
-	@Override
-	public Path createDirectory(Path path, int mode) throws ReadOnlyFileSystemException {
-		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		throw new ReadOnlyFileSystemException();
-	}
+  @Override
+  public Path createDirectory(Path path, int mode) throws ReadOnlyFileSystemException {
+    if (path.getFileSystem() != this) {
+      throw new IllegalArgumentException();
+    }
+    throw new ReadOnlyFileSystemException();
+  }
 }

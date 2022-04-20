@@ -38,73 +38,75 @@ import java.nio.file.FileAlreadyExistsException;
  * Note: The JVM must be in a single-byte locale, such as "C", "POSIX", or
  * "en_US".  PosixFile makes this assumption in its JNI implementation.
  * </p>
- * 
+ *
  * @see  PosixFile
  *
  * @author  AO Industries, Inc.
  */
 public interface PosixFileSystem extends FileSystem {
 
-	/**
-	 * Unix filename restrictions are:
-	 * <ol>
-	 * <li>Must not be longer than <code>MAX_PATH_NAME_LENGTH</code> characters</li>
-	 * <li>Must not contain the NULL character</li>
-	 * <li>Must not contain the '/' character</li>
-	 * <li>Must not be "."</li>
-	 * <li>Must not be ".."</li>
-	 * </ol>
-	 */
-	@Override
-	default void checkSubPath(Path parent, String name) throws InvalidPathException {
-		if(parent.getFileSystem() != this) throw new IllegalArgumentException();
-		int nameLen = name.length();
-		// Must not be longer than <code>MAX_PATH_NAME_LENGTH</code> characters
-		if(nameLen > MAX_PATH_NAME_LENGTH) {
-			throw new InvalidPathException("Path name must not be longer than " + MAX_PATH_NAME_LENGTH + " characters: " + name);
-		}
-		// Must not contain the NULL character
-		if(name.indexOf(0) != -1) {
-			throw new InvalidPathException("Path name must not contain the NULL character: " + name);
-		}
-		// Must not contain the '/' character
-		assert Path.SEPARATOR == '/';
-		// Must not be "."
-		if(".".equals(name)) {
-			throw new InvalidPathException("Path name must not be \".\": " + name);
-		}
-		// Must not be ".."
-		if("..".equals(name)) {
-			throw new InvalidPathException("Path name must not be \"..\": " + name);
-		}
-	}
+  /**
+   * Unix filename restrictions are:
+   * <ol>
+   * <li>Must not be longer than <code>MAX_PATH_NAME_LENGTH</code> characters</li>
+   * <li>Must not contain the NULL character</li>
+   * <li>Must not contain the '/' character</li>
+   * <li>Must not be "."</li>
+   * <li>Must not be ".."</li>
+   * </ol>
+   */
+  @Override
+  default void checkSubPath(Path parent, String name) throws InvalidPathException {
+    if (parent.getFileSystem() != this) {
+      throw new IllegalArgumentException();
+    }
+    int nameLen = name.length();
+    // Must not be longer than <code>MAX_PATH_NAME_LENGTH</code> characters
+    if (nameLen > MAX_PATH_NAME_LENGTH) {
+      throw new InvalidPathException("Path name must not be longer than " + MAX_PATH_NAME_LENGTH + " characters: " + name);
+    }
+    // Must not contain the NULL character
+    if (name.indexOf(0) != -1) {
+      throw new InvalidPathException("Path name must not contain the NULL character: " + name);
+    }
+    // Must not contain the '/' character
+    assert Path.SEPARATOR == '/';
+    // Must not be "."
+    if (".".equals(name)) {
+      throw new InvalidPathException("Path name must not be \".\": " + name);
+    }
+    // Must not be ".."
+    if ("..".equals(name)) {
+      throw new InvalidPathException("Path name must not be \"..\": " + name);
+    }
+  }
 
-	/**
-	 * @param  path  Must be from this file system.
-	 */
-	Stat stat(Path path) throws IOException;
+  /**
+   * @param  path  Must be from this file system.
+   */
+  Stat stat(Path path) throws IOException;
 
-	/**
-	 * Atomically creates an empty file (must not have already existed) with the
-	 * given permissions.
-	 * 
-	 * @return  returns the path
-	 * 
-	 * @throws UnsupportedOperationException if unable to create atomically
-	 * @throws FileAlreadyExistsException if file already exists
-	 * @throws IOException if an underlying I/O error occurs.
-	 */
-	Path createFile(Path path, int mode) throws IOException;
+  /**
+   * Atomically creates an empty file (must not have already existed) with the
+   * given permissions.
+   *
+   * @return  returns the path
+   *
+   * @throws UnsupportedOperationException if unable to create atomically
+   * @throws FileAlreadyExistsException if file already exists
+   * @throws IOException if an underlying I/O error occurs.
+   */
+  Path createFile(Path path, int mode) throws IOException;
 
-	/**
-	 * Atomically creates a directory (must not have already existed) with the
-	 * given permissions.
-	 * 
-	 * @return  returns the path
-	 * 
-	 * @throws UnsupportedOperationException if unable to create atomically
-	 * @throws FileAlreadyExistsException if file already exists
-	 * @throws IOException if an underlying I/O error occurs.
-	 */
-	Path createDirectory(Path path, int mode) throws IOException;
+  /**
+   * Atomically creates a directory (must not have already existed) with the
+   * given permissions.
+   *
+   * @return  returns the path
+   *
+   * @throws UnsupportedOperationException if unable to create atomically
+   * @throws FileAlreadyExistsException if file already exists
+   * @throws IOException if an underlying I/O error occurs.
+   */
+  Path createDirectory(Path path, int mode) throws IOException;
 }

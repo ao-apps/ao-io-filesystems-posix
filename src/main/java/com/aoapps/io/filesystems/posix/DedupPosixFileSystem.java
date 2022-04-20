@@ -52,41 +52,49 @@ import org.apache.commons.lang3.NotImplementedException;
  */
 public class DedupPosixFileSystem extends FileSystemWrapper implements PosixFileSystem {
 
-	private final PosixFileSystem wrapped;
+  private final PosixFileSystem wrapped;
 
-	public DedupPosixFileSystem(PosixFileSystem wrapped) {
-		super(wrapped);
-		this.wrapped = wrapped;
-	}
+  public DedupPosixFileSystem(PosixFileSystem wrapped) {
+    super(wrapped);
+    this.wrapped = wrapped;
+  }
 
-	/**
-	 * Delegates to the wrapped file system.
-	 */
-	@Override
-	public Stat stat(Path path) throws IOException {
-		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		return wrapped.stat(unwrapPath(path));
-	}
+  /**
+   * Delegates to the wrapped file system.
+   */
+  @Override
+  public Stat stat(Path path) throws IOException {
+    if (path.getFileSystem() != this) {
+      throw new IllegalArgumentException();
+    }
+    return wrapped.stat(unwrapPath(path));
+  }
 
-	@Override
-	public Path createFile(Path path) throws IOException {
-		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		throw new NotImplementedException("TODO");
-	}
+  @Override
+  public Path createFile(Path path) throws IOException {
+    if (path.getFileSystem() != this) {
+      throw new IllegalArgumentException();
+    }
+    throw new NotImplementedException("TODO");
+  }
 
-	@Override
-	public Path createFile(Path path, int mode) throws IOException {
-		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		throw new NotImplementedException("TODO");
-	}
+  @Override
+  public Path createFile(Path path, int mode) throws IOException {
+    if (path.getFileSystem() != this) {
+      throw new IllegalArgumentException();
+    }
+    throw new NotImplementedException("TODO");
+  }
 
-	/**
-	 * Delegates to the wrapped file system.
-	 */
-	@Override
-	public Path createDirectory(Path path, int mode) throws IOException {
-		if(path.getFileSystem() != this) throw new IllegalArgumentException();
-		wrapped.createDirectory(unwrapPath(path), mode);
-		return path;
-	}
+  /**
+   * Delegates to the wrapped file system.
+   */
+  @Override
+  public Path createDirectory(Path path, int mode) throws IOException {
+    if (path.getFileSystem() != this) {
+      throw new IllegalArgumentException();
+    }
+    wrapped.createDirectory(unwrapPath(path), mode);
+    return path;
+  }
 }

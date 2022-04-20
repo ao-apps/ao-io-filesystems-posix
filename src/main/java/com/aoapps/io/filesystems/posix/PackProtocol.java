@@ -33,41 +33,43 @@ package com.aoapps.io.filesystems.posix;
  */
 final class PackProtocol {
 
-	/** Make no instances. */
-	private PackProtocol() {throw new AssertionError();}
+  /** Make no instances. */
+  private PackProtocol() {
+    throw new AssertionError();
+  }
 
-	/**
-	 * The header (magic value).
-	 */
-	static final String HEADER = "ParallelPack";
+  /**
+   * The header (magic value).
+   */
+  static final String HEADER = "ParallelPack";
 
-	/**
-	 * The version supported.
-	 *
-	 * 1 - Original version
-	 * 2 - Added single byte response from unpack when connected over TCP to
-	 *     avoid EOFException on socket close
-	 * 3 - Added compression option
-	 */
-	static final int VERSION=3;
+  /**
+   * The version supported.
+   *
+   * 1 - Original version
+   * 2 - Added single byte response from unpack when connected over TCP to
+   *     avoid EOFException on socket close
+   * 3 - Added compression option
+   */
+  static final int VERSION=3;
 
-	/**
-	 * These values are used on the main loop.
-	 */
-	static final byte
-		REGULAR_FILE = 0,
-		DIRECTORY = 1,
-		SYMLINK = 2,
-		BLOCK_DEVICE = 3,
-		CHARACTER_DEVICE = 4,
-		FIFO = 5,
-		END = 6
-	;
+  /**
+   * These values are used on the main loop.
+   */
+  static final byte
+    REGULAR_FILE = 0,
+    DIRECTORY = 1,
+    SYMLINK = 2,
+    BLOCK_DEVICE = 3,
+    CHARACTER_DEVICE = 4,
+    FIFO = 5,
+    END = 6
+  ;
 
-	/**
-	 * The buffer size.
-	 */
-	static final short BUFFER_SIZE = 4096;
+  /**
+   * The buffer size.
+   */
+  static final short BUFFER_SIZE = 4096;
 
-	static final int DEFAULT_PORT = 10000;
+  static final int DEFAULT_PORT = 10000;
 }
