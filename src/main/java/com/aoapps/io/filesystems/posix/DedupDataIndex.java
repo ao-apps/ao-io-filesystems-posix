@@ -229,6 +229,7 @@ public class DedupDataIndex {
    * This must be a multiple of 4 for the hex encoding of filenames.
    */
   private static final int DIRECTORY_HASH_BITS = 16;
+
   static {
     assert DIRECTORY_HASH_BITS >= HEX_BITS && DIRECTORY_HASH_BITS <= (MD5_SUM_BITS - HEX_BITS);
     assert (DIRECTORY_HASH_BITS & (HEX_BITS - 1)) == 0 : "This must be a multiple of " + HEX_BITS + " for the hex encoding of filenames.";
@@ -238,6 +239,7 @@ public class DedupDataIndex {
    * The number of hex characters in the directory hash filename.
    */
   private static final int DIRECTORY_HASH_CHARACTERS = DIRECTORY_HASH_BITS / HEX_BITS;
+
   static {
     assert DIRECTORY_HASH_CHARACTERS >= 1;
   }
@@ -287,10 +289,10 @@ public class DedupDataIndex {
       if (!(obj instanceof InstanceKey)) {
         return false;
       }
-      InstanceKey other = (InstanceKey)obj;
+      InstanceKey other = (InstanceKey) obj;
       return
-        fileSystem == other.fileSystem
-        && dataIndexDir.equals(other.dataIndexDir)
+          fileSystem == other.fileSystem
+              && dataIndexDir.equals(other.dataIndexDir)
       ;
     }
   }
@@ -384,8 +386,8 @@ public class DedupDataIndex {
       } while (shift > 0);
       this.lockDirName = name.toString();
       this.lockPath = new Path(
-        new Path(dataIndexDir, lockDirName),
-        LOCK_FILE_NAME
+          new Path(dataIndexDir, lockDirName),
+          LOCK_FILE_NAME
       );
       Stat stat = fileSystem.stat(lockPath);
       if (!stat.exists()) {
@@ -406,12 +408,12 @@ public class DedupDataIndex {
     @Override
     public String toString() {
       return
-        DedupDataIndex.class.getName()
-        + '('
-        + DedupDataIndex.this.dataIndexDir
-        + ").hashLock("
-        + lockDirName
-        + ')'
+          DedupDataIndex.class.getName()
+              + '('
+              + DedupDataIndex.this.dataIndexDir
+              + ").hashLock("
+              + lockDirName
+              + ')'
       ;
     }
 
@@ -453,6 +455,7 @@ public class DedupDataIndex {
       return hashLock;
     }
   }
+
   // </editor-fold>
 
   // <editor-fold defaultstate="collapsed" desc="Background verification">
@@ -504,10 +507,10 @@ public class DedupDataIndex {
                     // Must still exist
                     if (stat.exists()) {
                       if (
-                        // Must be a regular file
-                        stat.isRegularFile()
-                        // Must have a link count of one
-                        && stat.getNumberLinks() == 1
+                          // Must be a regular file
+                          stat.isRegularFile()
+                              // Must have a link count of one
+                              && stat.getNumberLinks() == 1
                       ) {
                         logger.log(Level.WARNING, "Removing orphan: " + file);
                         fileSystem.delete(file);

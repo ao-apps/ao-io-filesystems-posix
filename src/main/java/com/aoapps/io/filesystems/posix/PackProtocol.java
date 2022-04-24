@@ -51,19 +51,19 @@ final class PackProtocol {
    *     avoid EOFException on socket close
    * 3 - Added compression option
    */
-  static final int VERSION=3;
+  static final int VERSION = 3;
 
   /**
    * These values are used on the main loop.
    */
   static final byte
-    REGULAR_FILE = 0,
-    DIRECTORY = 1,
-    SYMLINK = 2,
-    BLOCK_DEVICE = 3,
-    CHARACTER_DEVICE = 4,
-    FIFO = 5,
-    END = 6
+      REGULAR_FILE = 0,
+      DIRECTORY = 1,
+      SYMLINK = 2,
+      BLOCK_DEVICE = 3,
+      CHARACTER_DEVICE = 4,
+      FIFO = 5,
+      END = 6
   ;
 
   /**

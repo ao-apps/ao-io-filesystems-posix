@@ -43,9 +43,11 @@ public class RandomFailPosixFileSystem extends RandomFailFileSystem implements P
     default float getStat() {
       return 0.00001f;
     }
+
     default float getCreateFileMode() {
       return getCreateFile();
     }
+
     default float getCreateDirectoryMode() {
       return getCreateDirectory();
     }
@@ -58,14 +60,14 @@ public class RandomFailPosixFileSystem extends RandomFailFileSystem implements P
    * @param  fastRandom  A fast pseudo-random number generator for non-cryptographic purposes.
    */
   public RandomFailPosixFileSystem(
-    PosixFileSystem wrappedFileSystem,
-    UnixFailureProbabilities unixFailureProbabilities,
-    Random fastRandom
+      PosixFileSystem wrappedFileSystem,
+      UnixFailureProbabilities unixFailureProbabilities,
+      Random fastRandom
   ) {
     super(
-      wrappedFileSystem,
-      unixFailureProbabilities,
-      fastRandom
+        wrappedFileSystem,
+        unixFailureProbabilities,
+        fastRandom
     );
     this.wrapped = wrappedFileSystem;
     this.unixFailureProbabilities = unixFailureProbabilities;
@@ -83,11 +85,11 @@ public class RandomFailPosixFileSystem extends RandomFailFileSystem implements P
    */
   public RandomFailPosixFileSystem(PosixFileSystem wrappedFileSystem) {
     this(
-      wrappedFileSystem,
-      new UnixFailureProbabilities() {
-        // All defaults
-      },
-      defaultFastRandom
+        wrappedFileSystem,
+        new UnixFailureProbabilities() {
+          // All defaults
+        },
+        defaultFastRandom
     );
   }
 

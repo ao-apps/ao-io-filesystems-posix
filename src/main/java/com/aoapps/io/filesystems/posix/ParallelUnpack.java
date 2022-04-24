@@ -80,11 +80,11 @@ public final class ParallelUnpack {
   @SuppressWarnings("AssignmentToForLoopParameter")
   public static void main(String[] args) {
     if (args.length == 0) {
-      System.err.println("Usage: "+ParallelUnpack.class.getName()+" [-d root] [-l] [-h host] [-p port] [-n] [-v] [--] path");
+      System.err.println("Usage: " + ParallelUnpack.class.getName() + " [-d root] [-l] [-h host] [-p port] [-n] [-v] [--] path");
       System.err.println("\t-d\tWrite to a deduplicated filesystem at the given root, paths are relative to this root");
       System.err.println("\t-l\tWill listen for an incoming connection instead of reading from standard in");
       System.err.println("\t-h\tWill listen on the interface matching host");
-      System.err.println("\t-p\tWill listen on port instead of port "+PackProtocol.DEFAULT_PORT);
+      System.err.println("\t-p\tWill listen on port instead of port " + PackProtocol.DEFAULT_PORT);
       System.err.println("\t-n\tPerform dry run, do not modify the filesystem");
       System.err.println("\t-f\tOverwrite existing files");
       System.err.println("\t-v\tWrite the full path to standard error as each file is unpacked");
@@ -99,7 +99,7 @@ public final class ParallelUnpack {
       boolean dryRun = false;
       boolean force = false;
       boolean optionsEnded = false;
-      for (int i=0; i<args.length; i++) {
+      for (int i = 0; i < args.length; i++) {
         String arg = args[i];
         if (!optionsEnded && arg.equals("-v")) {
           verboseOutput = System.err;
@@ -107,14 +107,14 @@ public final class ParallelUnpack {
           listen = true;
         } else if (!optionsEnded && arg.equals("-h")) {
           i++;
-          if (i<args.length) {
+          if (i < args.length) {
             host = args[i];
           } else {
             throw new IllegalArgumentException("Expecting host after -h");
           }
         } else if (!optionsEnded && arg.equals("-p")) {
           i++;
-          if (i<args.length) {
+          if (i < args.length) {
             port = Integer.parseInt(args[i]);
           } else {
             throw new IllegalArgumentException("Expecting port after -p");
@@ -139,7 +139,7 @@ public final class ParallelUnpack {
             // Accept only one TCP connection
             try (
               ServerSocket ss = host == null ? new ServerSocket(port, 1) : new ServerSocket(port, 1, InetAddress.getByName(host))
-            ) {
+                ) {
               socket = ss.accept();
             }
             try (
@@ -169,6 +169,7 @@ public final class ParallelUnpack {
   private static class PathAndCount {
     final String path;
     int linkCount;
+
     PathAndCount(String path, int linkCount) {
       this.path = path;
       this.linkCount = linkCount;
@@ -178,6 +179,7 @@ public final class ParallelUnpack {
   static class PathAndModifyTime {
     final String path;
     final long modifyTime;
+
     PathAndModifyTime(String path, long modifyTime) {
       this.path = path;
       this.modifyTime = modifyTime;
@@ -191,10 +193,10 @@ public final class ParallelUnpack {
     final PosixFile destination = new PosixFile(path);
     Stat destinationStat = destination.getStat();
     if (!destinationStat.exists()) {
-      throw new IOException("Directory not found: "+destination.getPath());
+      throw new IOException("Directory not found: " + destination.getPath());
     }
     if (!destinationStat.isDirectory()) {
-      throw new IOException("Not a directory: "+destination.getPath());
+      throw new IOException("Not a directory: " + destination.getPath());
     }
 
     final BlockingQueue<String> verboseQueue;
@@ -206,7 +208,7 @@ public final class ParallelUnpack {
       verboseThread = null;
     } else {
       verboseQueue = new ArrayBlockingQueue<>(VERBOSE_QUEUE_SIZE);
-      verboseThreadRun = new boolean[] {true};
+      verboseThreadRun = new boolean[]{true};
       verboseThread = new Thread("ParallelUnpack - Verbose Thread") {
         @Override
         public void run() {
@@ -235,7 +237,7 @@ public final class ParallelUnpack {
     try {
       StreamableInput streamIn = new StreamableInput(in);
       // Header
-      for (int c=0, len=PackProtocol.HEADER.length(); c<len; c++) {
+      for (int c = 0, len = PackProtocol.HEADER.length(); c < len; c++) {
         int ch = streamIn.read();
         if (ch == -1) {
           throw new EOFException("End of file while reading header");
@@ -247,7 +249,7 @@ public final class ParallelUnpack {
       // Version
       int version = streamIn.readInt();
       if (version != PackProtocol.VERSION) {
-        throw new IOException("Unsupported pack version "+version+", expecting version "+PackProtocol.VERSION);
+        throw new IOException("Unsupported pack version " + version + ", expecting version " + PackProtocol.VERSION);
       }
       boolean compress = streamIn.readBoolean();
       if (compress) {
@@ -310,8 +312,8 @@ public final class ParallelUnpack {
                 sb.setLength(0);
                 PosixFile uf = new PosixFile(sb.append(path).append(pathAndMod.path).toString());
                 uf.utime(
-                  uf.getStat().getAccessTime(),
-                  pathAndMod.modifyTime
+                    uf.getStat().getAccessTime(),
+                    pathAndMod.modifyTime
                 );
                 mtimeStack.pop();
               }
@@ -321,7 +323,7 @@ public final class ParallelUnpack {
             PosixFile uf = new PosixFile(fullPath);
             Stat ufStat = uf.getStat();
             if (!force && ufStat.exists()) {
-              throw new IOException("Exists: "+fullPath);
+              throw new IOException("Exists: " + fullPath);
             }
 
             // Handle this file
@@ -380,7 +382,7 @@ public final class ParallelUnpack {
                     ufStat = uf.getStat();
                     uf.utime(ufStat.getAccessTime(), modifyTime);
                   }
-                  linkPathAndCounts.put(linkIdL, new PathAndCount(packPath, numLinks-1));
+                  linkPathAndCounts.put(linkIdL, new PathAndCount(packPath, numLinks - 1));
                 }
               }
             } else if (type == PackProtocol.DIRECTORY) {
@@ -409,7 +411,7 @@ public final class ParallelUnpack {
                 mtimeStack = new Stack<>();
                 directoryModifyTimes.put(subtreeRoot, mtimeStack);
               }
-              mtimeStack.push(new PathAndModifyTime(packPath+'/', modifyTime));
+              mtimeStack.push(new PathAndModifyTime(packPath + '/', modifyTime));
             } else if (type == PackProtocol.SYMLINK) {
               int uid = streamIn.readInt();
               int gid = streamIn.readInt();
@@ -429,7 +431,7 @@ public final class ParallelUnpack {
                 if (ufStat.exists()) {
                   uf.deleteRecursive();
                 }
-                uf.mknod(mode|PosixFile.IS_BLOCK_DEVICE, deviceIdentifier).chown(uid, gid);
+                uf.mknod(mode | PosixFile.IS_BLOCK_DEVICE, deviceIdentifier).chown(uid, gid);
               }
             } else if (type == PackProtocol.CHARACTER_DEVICE) {
               int uid = streamIn.readInt();
@@ -440,7 +442,7 @@ public final class ParallelUnpack {
                 if (ufStat.exists()) {
                   uf.deleteRecursive();
                 }
-                uf.mknod(mode|PosixFile.IS_CHARACTER_DEVICE, deviceIdentifier).chown(uid, gid);
+                uf.mknod(mode | PosixFile.IS_CHARACTER_DEVICE, deviceIdentifier).chown(uid, gid);
               }
             } else if (type == PackProtocol.FIFO) {
               int uid = streamIn.readInt();
@@ -453,7 +455,7 @@ public final class ParallelUnpack {
                 uf.mkfifo(mode).chown(uid, gid);
               }
             } else {
-              throw new IOException("Unexpected value for type: "+type);
+              throw new IOException("Unexpected value for type: " + type);
             }
           }
         } finally {
@@ -502,7 +504,7 @@ public final class ParallelUnpack {
   private static void readFile(PosixFile uf, DataInput in, byte[] buffer) throws IOException {
     try (OutputStream out = new FileOutputStream(uf.getFile())) {
       int count;
-      while ((count=in.readShort()) != -1) {
+      while ((count = in.readShort()) != -1) {
         in.readFully(buffer, 0, count);
         out.write(buffer, 0, count);
       }

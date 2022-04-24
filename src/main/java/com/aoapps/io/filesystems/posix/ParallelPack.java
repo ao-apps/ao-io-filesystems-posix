@@ -95,10 +95,10 @@ public final class ParallelPack {
   @SuppressWarnings("AssignmentToForLoopParameter")
   public static void main(String[] args) {
     if (args.length == 0) {
-      System.err.println("Usage: "+ParallelPack.class.getName()+" [-d root] [-h host] [-p port] [-v] [--] path {path}");
+      System.err.println("Usage: " + ParallelPack.class.getName() + " [-d root] [-h host] [-p port] [-v] [--] path {path}");
       System.err.println("\t-d\tRead from a deduplicated filesystem at the given root, paths are relative to this root");
       System.err.println("\t-h\tWill connect to host instead of writing to standard out");
-      System.err.println("\t-p\tWill connect to port instead of port "+PackProtocol.DEFAULT_PORT);
+      System.err.println("\t-p\tWill connect to port instead of port " + PackProtocol.DEFAULT_PORT);
       System.err.println("\t-v\tWrite the full path to standard error as each file is packed");
       System.err.println("\t-z\tCompress the output");
       System.err.println("\t--\tEnd options, all additional arguments will be interpreted as paths");
@@ -110,20 +110,20 @@ public final class ParallelPack {
       String host = null;
       int port = PackProtocol.DEFAULT_PORT;
       boolean optionsEnded = false;
-      for (int i=0; i<args.length; i++) {
+      for (int i = 0; i < args.length; i++) {
         String arg = args[i];
         if (!optionsEnded && arg.equals("-v")) {
           verboseOutput = System.err;
         } else if (!optionsEnded && arg.equals("-h")) {
           i++;
-          if (i<args.length) {
+          if (i < args.length) {
             host = args[i];
           } else {
             throw new IllegalArgumentException("Expecting host after -h");
           }
         } else if (!optionsEnded && arg.equals("-p")) {
           i++;
-          if (i<args.length) {
+          if (i < args.length) {
             port = Integer.parseInt(args[i]);
           } else {
             throw new IllegalArgumentException("Expecting port after -p");
@@ -142,7 +142,7 @@ public final class ParallelPack {
             Socket socket = new Socket(host, port);
             OutputStream out = socket.getOutputStream();
             InputStream in = socket.getInputStream()
-          ) {
+              ) {
             parallelPack(directories, out, verboseOutput, compress);
             int resp = in.read();
             if (resp == -1) {
@@ -167,6 +167,7 @@ public final class ParallelPack {
   private static class LinkAndCount {
     final long linkId;
     int linkCount;
+
     LinkAndCount(long linkId, int linkCount) {
       this.linkId = linkId;
       this.linkCount = linkCount;
@@ -176,6 +177,7 @@ public final class ParallelPack {
   static class FilesystemIteratorAndSlot {
     final FilesystemIterator iterator;
     final int slot;
+
     FilesystemIteratorAndSlot(FilesystemIterator iterator, int slot) {
       this.iterator = iterator;
       this.slot = slot;
@@ -193,20 +195,20 @@ public final class ParallelPack {
     // as opposed to O(n^2) for a list.  This is similar to the fix for AWStats logresolvemerge provided by Dan Armstrong
     // a couple of years ago.
     final Map<String, List<FilesystemIteratorAndSlot>> nextFiles = new TreeMap<>(
-      (String s1, String s2) -> {
-        // Make sure directories are sorted after their directory contents
-        int diff = s1.compareTo(s2);
-        if (diff == 0) {
-          return 0;
+        (String s1, String s2) -> {
+          // Make sure directories are sorted after their directory contents
+          int diff = s1.compareTo(s2);
+          if (diff == 0) {
+            return 0;
+          }
+          if (s2.startsWith(s1)) {
+            return 1;
+          }
+          if (s1.startsWith(s2)) {
+            return -1;
+          }
+          return diff;
         }
-        if (s2.startsWith(s1)) {
-          return 1;
-        }
-        if (s1.startsWith(s2)) {
-          return -1;
-        }
-        return diff;
-      }
     );
     {
       int nextSlot = 0;
@@ -214,10 +216,10 @@ public final class ParallelPack {
       for (PosixFile directory : directories) {
         Stat stat = directory.getStat();
         if (!stat.exists()) {
-          throw new IOException("Directory not found: "+directory.getPath());
+          throw new IOException("Directory not found: " + directory.getPath());
         }
         if (!stat.isDirectory()) {
-          throw new IOException("Not a directory: "+directory.getPath());
+          throw new IOException("Not a directory: " + directory.getPath());
         }
         String path = directory.getFile().getCanonicalPath();
         Map<String, FilesystemIteratorRule> rules = Collections.singletonMap(path, FilesystemIteratorRule.OK);
@@ -231,7 +233,7 @@ public final class ParallelPack {
             nextFiles.put(relPath, list);
           }
           list.add(new FilesystemIteratorAndSlot(iterator, nextSlot++));
-          if (nextSlot>62) {
+          if (nextSlot > 62) {
             nextSlot = 0;
           }
         }
@@ -247,7 +249,7 @@ public final class ParallelPack {
       verboseThread = null;
     } else {
       verboseQueue = new ArrayBlockingQueue<>(VERBOSE_QUEUE_SIZE);
-      verboseThreadRun = new boolean[] {true};
+      verboseThreadRun = new boolean[]{true};
       verboseThread = new Thread("ParallelPack - Verbose Thread") {
         @Override
         public void run() {
@@ -351,7 +353,7 @@ public final class ParallelPack {
                   streamOut.writeLong(stat.getMode());
                   streamOut.writeLong(stat.getModifyTime());
                   writeFile(uf, streamOut, buffer);
-                } else if (numLinks>1) {
+                } else if (numLinks > 1) {
                   // Has hard links
                   // Look for already found
                   Long device = stat.getDevice();
@@ -381,10 +383,10 @@ public final class ParallelPack {
                     streamOut.writeLong(stat.getModifyTime());
                     streamOut.writeInt(numLinks);
                     writeFile(uf, streamOut, buffer);
-                    inodeMap.put(inode, new LinkAndCount(linkId, numLinks-1));
+                    inodeMap.put(inode, new LinkAndCount(linkId, numLinks - 1));
                   }
                 } else {
-                  throw new IOException("Invalid link count: "+numLinks);
+                  throw new IOException("Invalid link count: " + numLinks);
                 }
               } else if (stat.isDirectory()) {
                 streamOut.writeByte(PackProtocol.DIRECTORY);
@@ -420,7 +422,7 @@ public final class ParallelPack {
                 streamOut.writeInt(stat.getGid());
                 streamOut.writeLong(stat.getMode());
               } else if (stat.isSocket()) {
-                throw new IOException("Unable to pack socket: "+uf.getPath());
+                throw new IOException("Unable to pack socket: " + uf.getPath());
               }
               // Get the next file
               File nextFile = iterator.getNextFile();
@@ -468,9 +470,9 @@ public final class ParallelPack {
   private static void writeFile(PosixFile uf, DataOutput out, byte[] buffer) throws IOException {
     try (InputStream in = new FileInputStream(uf.getFile())) {
       int ret;
-      while ((ret=in.read(buffer, 0, PackProtocol.BUFFER_SIZE)) != -1) {
-        if (ret<0 || ret>Short.MAX_VALUE) {
-          throw new IOException("ret out of range: "+ret);
+      while ((ret = in.read(buffer, 0, PackProtocol.BUFFER_SIZE)) != -1) {
+        if (ret < 0 || ret > Short.MAX_VALUE) {
+          throw new IOException("ret out of range: " + ret);
         }
         out.writeShort(ret);
         out.write(buffer, 0, ret);
@@ -486,7 +488,7 @@ public final class ParallelPack {
     String path = file.getPath();
     String prefix = iterator.getStartPath();
     if (!path.startsWith(prefix)) {
-      throw new IOException("path doesn't start with prefix: path=\""+path+"\", prefix=\""+prefix+"\"");
+      throw new IOException("path doesn't start with prefix: path=\"" + path + "\", prefix=\"" + prefix + "\"");
     }
     return path.substring(prefix.length());
   }
