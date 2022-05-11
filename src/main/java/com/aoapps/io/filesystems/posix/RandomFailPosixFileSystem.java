@@ -39,6 +39,9 @@ import java.util.Random;
  */
 public class RandomFailPosixFileSystem extends RandomFailFileSystem implements PosixFileSystem {
 
+  /**
+   * Provides the failure probabilities.
+   */
   public static interface UnixFailureProbabilities extends FailureProbabilities {
     default float getStat() {
       return 0.00001f;
@@ -57,6 +60,8 @@ public class RandomFailPosixFileSystem extends RandomFailFileSystem implements P
   private final UnixFailureProbabilities unixFailureProbabilities;
 
   /**
+   * Creates a new random-fail POSIX filesystem, wrapping the given POSIX filesystem.
+   *
    * @param  fastRandom  A fast pseudo-random number generator for non-cryptographic purposes.
    */
   public RandomFailPosixFileSystem(

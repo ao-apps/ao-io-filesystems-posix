@@ -182,7 +182,7 @@ import java.util.logging.Logger;
  * TODO: Keep track of number of in-JVM locks, only release file lock when all JVM locks released.
  * </p>
  *
- * @see  com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol#FAILOVER_FILE_REPLICATION_CHUNK_SIZE
+ * @see  com.aoindustries.aoserv.daemon.client.AoservDaemonProtocol#FAILOVER_FILE_REPLICATION_CHUNK_SIZE
  *
  * @author  AO Industries, Inc.
  */
@@ -292,8 +292,7 @@ public class DedupDataIndex {
       InstanceKey other = (InstanceKey) obj;
       return
           fileSystem == other.fileSystem
-              && dataIndexDir.equals(other.dataIndexDir)
-      ;
+              && dataIndexDir.equals(other.dataIndexDir);
     }
   }
 
@@ -413,8 +412,7 @@ public class DedupDataIndex {
               + DedupDataIndex.this.dataIndexDir
               + ").hashLock("
               + lockDirName
-              + ')'
-      ;
+              + ')';
     }
 
     /**
@@ -467,6 +465,7 @@ public class DedupDataIndex {
    * <p>
    * For long-lived data indexes, it is good to run this once per day during low usage times.
    * </p>
+   *
    * @param  quick  When true, performs a quick pass to clean orphaned data
    *                only, but does not verify MD5 sums.
    */

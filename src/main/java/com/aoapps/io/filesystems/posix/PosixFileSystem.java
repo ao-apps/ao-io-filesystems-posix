@@ -23,9 +23,10 @@
 
 package com.aoapps.io.filesystems.posix;
 
+import static com.aoapps.io.filesystems.JavaFileSystem.MAX_PATH_NAME_LENGTH;
+
 import com.aoapps.io.filesystems.FileSystem;
 import com.aoapps.io.filesystems.InvalidPathException;
-import static com.aoapps.io.filesystems.JavaFileSystem.MAX_PATH_NAME_LENGTH;
 import com.aoapps.io.filesystems.Path;
 import com.aoapps.io.posix.PosixFile;
 import com.aoapps.io.posix.Stat;
@@ -46,7 +47,7 @@ import java.nio.file.FileAlreadyExistsException;
 public interface PosixFileSystem extends FileSystem {
 
   /**
-   * Unix filename restrictions are:
+   * Checks a sub-path.  Unix filename restrictions are:
    * <ol>
    * <li>Must not be longer than <code>MAX_PATH_NAME_LENGTH</code> characters</li>
    * <li>Must not contain the NULL character</li>
@@ -82,6 +83,8 @@ public interface PosixFileSystem extends FileSystem {
   }
 
   /**
+   * Stats the given path.
+   *
    * @param  path  Must be from this file system.
    */
   Stat stat(Path path) throws IOException;

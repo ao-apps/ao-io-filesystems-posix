@@ -138,13 +138,13 @@ public final class ParallelUnpack {
           try {
             // Accept only one TCP connection
             try (
-              ServerSocket ss = host == null ? new ServerSocket(port, 1) : new ServerSocket(port, 1, InetAddress.getByName(host))
+                ServerSocket ss = host == null ? new ServerSocket(port, 1) : new ServerSocket(port, 1, InetAddress.getByName(host))
                 ) {
               socket = ss.accept();
             }
             try (
-              OutputStream out = socket.getOutputStream();
-              InputStream in = socket.getInputStream()) {
+                OutputStream out = socket.getOutputStream();
+                InputStream in = socket.getInputStream()) {
               parallelUnpack(path, in, verboseOutput, dryRun, force);
               out.write(PackProtocol.END);
               out.flush();

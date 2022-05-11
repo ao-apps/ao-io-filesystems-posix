@@ -139,9 +139,9 @@ public final class ParallelPack {
       try {
         if (host != null) {
           try (
-            Socket socket = new Socket(host, port);
-            OutputStream out = socket.getOutputStream();
-            InputStream in = socket.getInputStream()
+              Socket socket = new Socket(host, port);
+              OutputStream out = socket.getOutputStream();
+              InputStream in = socket.getInputStream()
               ) {
             parallelPack(directories, out, verboseOutput, compress);
             int resp = in.read();
@@ -210,35 +210,35 @@ public final class ParallelPack {
           return diff;
         }
     );
-    {
-      int nextSlot = 0;
-      final Map<String, FilesystemIteratorRule> prefixRules = Collections.emptyMap();
-      for (PosixFile directory : directories) {
-        Stat stat = directory.getStat();
-        if (!stat.exists()) {
-          throw new IOException("Directory not found: " + directory.getPath());
-        }
-        if (!stat.isDirectory()) {
-          throw new IOException("Not a directory: " + directory.getPath());
-        }
-        String path = directory.getFile().getCanonicalPath();
-        Map<String, FilesystemIteratorRule> rules = Collections.singletonMap(path, FilesystemIteratorRule.OK);
-        FilesystemIterator iterator = new FilesystemIterator(rules, prefixRules, path, true, true);
-        File nextFile = iterator.getNextFile();
-        if (nextFile != null) {
-          String relPath = getRelativePath(nextFile, iterator);
-          List<FilesystemIteratorAndSlot> list = nextFiles.get(relPath);
-          if (list == null) {
-            list = new ArrayList<>(numDirectories);
-            nextFiles.put(relPath, list);
+      {
+        int nextSlot = 0;
+        final Map<String, FilesystemIteratorRule> prefixRules = Collections.emptyMap();
+        for (PosixFile directory : directories) {
+          Stat stat = directory.getStat();
+          if (!stat.exists()) {
+            throw new IOException("Directory not found: " + directory.getPath());
           }
-          list.add(new FilesystemIteratorAndSlot(iterator, nextSlot++));
-          if (nextSlot > 62) {
-            nextSlot = 0;
+          if (!stat.isDirectory()) {
+            throw new IOException("Not a directory: " + directory.getPath());
+          }
+          String path = directory.getFile().getCanonicalPath();
+          Map<String, FilesystemIteratorRule> rules = Collections.singletonMap(path, FilesystemIteratorRule.OK);
+          FilesystemIterator iterator = new FilesystemIterator(rules, prefixRules, path, true, true);
+          File nextFile = iterator.getNextFile();
+          if (nextFile != null) {
+            String relPath = getRelativePath(nextFile, iterator);
+            List<FilesystemIteratorAndSlot> list = nextFiles.get(relPath);
+            if (list == null) {
+              list = new ArrayList<>(numDirectories);
+              nextFiles.put(relPath, list);
+            }
+            list.add(new FilesystemIteratorAndSlot(iterator, nextSlot++));
+            if (nextSlot > 62) {
+              nextSlot = 0;
+            }
           }
         }
       }
-    }
 
     final BlockingQueue<String> verboseQueue;
     final boolean[] verboseThreadRun;
@@ -315,7 +315,7 @@ public final class ParallelPack {
               sb.append(startPath);
               sb.append(relPath);
               String fullPath = sb.toString();
-              PosixFile uf = new PosixFile(fullPath);
+              final PosixFile uf = new PosixFile(fullPath);
               // Get the pack path
               sb.setLength(0);
               int lastSlashPos = startPath.lastIndexOf(File.separatorChar);

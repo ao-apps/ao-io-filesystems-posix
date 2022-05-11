@@ -37,6 +37,8 @@ import org.apache.commons.lang3.NotImplementedException;
 public class TempPosixFileSystem extends TempFileSystem implements PosixFileSystem {
 
   /**
+   * {@inheritDoc}
+   *
    * @see  PosixFileSystem#checkSubPath(com.aoapps.io.filesystems.Path, java.lang.String)
    */
   @Override

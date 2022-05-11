@@ -57,6 +57,8 @@ public class DefaultPosixFileSystem extends JavaFileSystem implements PosixFileS
   }
 
   /**
+   * {@inheritDoc}
+   *
    * @see  PosixFileSystem#checkSubPath(com.aoapps.io.filesystems.Path, java.lang.String)
    */
   @Override

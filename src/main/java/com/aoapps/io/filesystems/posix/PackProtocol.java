@@ -45,11 +45,12 @@ final class PackProtocol {
 
   /**
    * The version supported.
-   *
-   * 1 - Original version
+   * <p>
+   * 1 - Original version<br>
    * 2 - Added single byte response from unpack when connected over TCP to
-   *     avoid EOFException on socket close
+   *     avoid EOFException on socket close<br>
    * 3 - Added compression option
+   * </p>
    */
   static final int VERSION = 3;
 
@@ -63,8 +64,7 @@ final class PackProtocol {
       BLOCK_DEVICE = 3,
       CHARACTER_DEVICE = 4,
       FIFO = 5,
-      END = 6
-  ;
+      END = 6;
 
   /**
    * The buffer size.
