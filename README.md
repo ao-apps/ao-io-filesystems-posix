@@ -22,7 +22,7 @@ POSIX filesystem abstraction.
 * [Project Home](https://oss.aoapps.com/io-filesystems/posix/)
 * [Changelog](https://oss.aoapps.com/io-filesystems/posix/changelog)
 * [API Docs](https://oss.aoapps.com/io-filesystems/posix/apidocs/)
-* [Maven Central Repository](https://search.maven.org/artifact/com.aoapps/ao-io-filesystems-posix)
+* [Maven Central Repository](https://central.sonatype.com/search?namespace=com.aoapps&q=a%3Aao-io-filesystems-posix)
 * [GitHub](https://github.com/ao-apps/ao-io-filesystems-posix)
 
 ## Contact Us
