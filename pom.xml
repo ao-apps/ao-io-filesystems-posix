@@ -30,7 +30,7 @@ along with ao-io-filesystems-posix.  If not, see <https://www.gnu.org/licenses/>
   </parent>
 
   <groupId>com.aoapps</groupId><artifactId>ao-io-filesystems-posix</artifactId><version>0.2.1-POST-SNAPSHOT</version>
-  <packaging>bundle</packaging>
+  <packaging>jar</packaging>
 
   <properties>
     <module.name>com.aoapps.io.filesystems.posix</module.name>
