@@ -46,8 +46,6 @@ along with ao-io-filesystems-posix.  If not, see <https://www.gnu.org/licenses/>
 / <a target="${javadoc.target}" href="${project.url}">POSIX</a>]]></javadoc.breadcrumbs>
     <!-- TODO: Implement tests -->
     <sonar.coverage.exclusions>**.*</sonar.coverage.exclusions>
-    <!-- Dependencies -->
-    <commons-lang3.version>3.13.0</commons-lang3.version>
   </properties>
 
   <name>AO IO Filesystems POSIX</name>
@@ -241,7 +239,7 @@ along with ao-io-filesystems-posix.  If not, see <https://www.gnu.org/licenses/>
                   <location>${project.build.directory}/offlineLinks/com.aoindustries/aoserv-daemon-client</location>
                 </offlineLink>
                 <offlineLink>
-                  <url>https://javadoc.io/doc/org.apache.commons/commons-lang3/${commons-lang3.version}/</url>
+                  <url>https://javadoc.io/doc/org.apache.commons/commons-lang3/${org.apache.commons:commons-lang3:jar.version}/</url>
                   <location>${project.build.directory}/offlineLinks/org.apache.commons/commons-lang3</location>
                 </offlineLink>
               </offlineLinks>
@@ -271,7 +269,7 @@ along with ao-io-filesystems-posix.  If not, see <https://www.gnu.org/licenses/>
         <groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId><version>1.90.0${POST-SNAPSHOT}</version>
       </dependency>
       <dependency>
-        <groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId><version>${commons-lang3.version}</version>
+        <groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId><version>3.13.0</version>
       </dependency>
       <!-- Transitive -->
       <dependency>
