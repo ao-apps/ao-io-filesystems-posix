@@ -1,6 +1,6 @@
 /*
  * ao-io-filesystems-posix - POSIX filesystem abstraction.
- * Copyright (C) 2015, 2019, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2015, 2019, 2021, 2022, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -79,11 +79,6 @@ public class RandomFailPosixFileSystem extends RandomFailFileSystem implements P
   }
 
   /**
-   * A fast pseudo-random number generator for non-cryptographic purposes.
-   */
-  private static final Random defaultFastRandom = new Random(IoUtils.bufferToLong(new SecureRandom().generateSeed(Long.BYTES)));
-
-  /**
    * Uses default probabilities and a default fast pseudo-random number generator for non-cryptographic purposes.
    *
    * @see #defaultFastRandom
@@ -97,6 +92,11 @@ public class RandomFailPosixFileSystem extends RandomFailFileSystem implements P
         defaultFastRandom
     );
   }
+
+  /**
+   * A fast pseudo-random number generator for non-cryptographic purposes.
+   */
+  private static final Random defaultFastRandom = new Random(IoUtils.bufferToLong(new SecureRandom().generateSeed(Long.BYTES)));
 
   /**
    * Delegates to the wrapped file system, but with a random chance of fail.
