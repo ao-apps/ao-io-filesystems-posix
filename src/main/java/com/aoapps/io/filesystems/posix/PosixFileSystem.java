@@ -1,6 +1,6 @@
 /*
  * ao-io-filesystems-posix - POSIX filesystem abstraction.
- * Copyright (C) 2015, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2015, 2020, 2021, 2022, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -35,10 +35,9 @@ import java.nio.file.FileAlreadyExistsException;
 
 /**
  * The most basic layer of what Unix file systems have in common.
- * <p>
- * Note: The JVM must be in a single-byte locale, such as "C", "POSIX", or
- * "en_US".  PosixFile makes this assumption in its JNI implementation.
- * </p>
+ *
+ * <p>Note: The JVM must be in a single-byte locale, such as "C", "POSIX", or
+ * "en_US".  PosixFile makes this assumption in its JNI implementation.</p>
  *
  * @see  PosixFile
  *

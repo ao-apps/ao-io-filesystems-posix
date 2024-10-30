@@ -1,6 +1,6 @@
 /*
  * ao-io-filesystems-posix - POSIX filesystem abstraction.
- * Copyright (C) 2009, 2010, 2011, 2015, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2009, 2010, 2011, 2015, 2021, 2022, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -45,12 +45,11 @@ final class PackProtocol {
 
   /**
    * The version supported.
-   * <p>
-   * 1 - Original version<br>
+   *
+   * <p>1 - Original version<br>
    * 2 - Added single byte response from unpack when connected over TCP to
    *     avoid EOFException on socket close<br>
-   * 3 - Added compression option
-   * </p>
+   * 3 - Added compression option</p>
    */
   static final int VERSION = 3;
 

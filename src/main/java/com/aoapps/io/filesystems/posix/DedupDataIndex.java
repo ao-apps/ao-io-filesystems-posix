@@ -1,6 +1,6 @@
 /*
  * ao-io-filesystems-posix - POSIX filesystem abstraction.
- * Copyright (C) 2015, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2015, 2020, 2021, 2022, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -39,7 +39,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * <p>
  * Each backup partition may optionally use a central index of data chunks for
  * all non-empty regular files.  Files are split into chunks of
  * <code>FAILOVER_FILE_REPLICATION_CHUNK_SIZE</code> bytes.  Each chunk may be
@@ -48,67 +47,58 @@ import java.util.logging.Logger;
  * chunks at the end less than <code>FAILOVER_FILE_REPLICATION_CHUNK_SIZE</code>
  * in length) are also added to the index.  A zero length chunk may never be
  * added.
- * </p>
- * <p>
- * The central index is a single layer directory hash, based on the first four
+ *
+ * <p>The central index is a single layer directory hash, based on the first four
  * characters of the content's MD5 hash.  Because of this single layer hash, an
  * individual hash directory can easily have enough entries to require a
- * file system with support for many files in one directory, such as ext4 or xfs.
- * </p>
- * <p>
- * Files are named based on the lowercase hex-coded MD5 hash of the uncompressed
+ * file system with support for many files in one directory, such as ext4 or xfs.</p>
+ *
+ * <p>Files are named based on the lowercase hex-coded MD5 hash of the uncompressed
  * chunk contents.  However, due to both MD5 hash collisions and the per-file
  * hard link limits, there may be more than one file per MD5 hash value.  The
- * files are named as follows:
- * </p>
+ * files are named as follows:</p>
+ *
  * <pre>(/backup_partition)/DATA-INDEX/(directory_hash)/(remaining_hash)-(uncompressed_length)-(collision#)-(link#)[.gz][.corrupt]</pre>
- * <p>
- * The <code>directory_hash</code> is the first four characters of the MD5 sum.
- * </p>
- * <p>
- * The <code>remaining_hash</code> is the remaining 28 characters of the MD5 sum.
- * </p>
- * <p>
- * The <code>uncompressed_length</code> is the hex-coded length of the
+ *
+ * <p>The <code>directory_hash</code> is the first four characters of the MD5 sum.</p>
+ *
+ * <p>The <code>remaining_hash</code> is the remaining 28 characters of the MD5 sum.</p>
+ *
+ * <p>The <code>uncompressed_length</code> is the hex-coded length of the
  * uncompressed chunk contents.  When the length is a multiple of 0x100000
  * (1 MiB), it is represented with an "M" following the number of mebibytes in
  * hex.  When the length is a multiple of 0x400 (1 kiB), it is represented with
- * a "k" following the number of kibibytes in hex.
- * </p>
- * <p>
- * The uncompressed length is added to the filename to allow the efficient
+ * a "k" following the number of kibibytes in hex.</p>
+ *
+ * <p>The uncompressed length is added to the filename to allow the efficient
  * location of candidate contents in the event of an MD5 collision.  Chunks with
  * a different size can be immediately excluded by filename without any
  * additional <code>stat</code> (for uncompressed) or full decompression.  Note
  * that if the file does not end with ".gz", this length will always equal the
- * actual file length.
- * </p>
- * <p>
- * The <code>collision#</code> is a zero-based hex counter for each unique set
+ * actual file length.</p>
+ *
+ * <p>The <code>collision#</code> is a zero-based hex counter for each unique set
  * of data resulting in this MD5 hash.  When locating new data from the index,
  * matches are not done by MD5 alone, the contents will be verified byte-by-byte.
  * When a second set of content must be added for a given MD5 hash, it will be
- * <code>(remaining_hash)-(uncompressed_length)-<em>1</em>-(link#)[.gz]</code>.
- * </p>
- * <p>
- * The <code>link#</code> is a zero-based hex counter to workaround the
+ * <code>(remaining_hash)-(uncompressed_length)-<em>1</em>-(link#)[.gz]</code>.</p>
+ *
+ * <p>The <code>link#</code> is a zero-based hex counter to workaround the
  * file system limits on the number of hard links allowed to one file (65000 for
  * ext4).  Once the first file is "full", a second copy of the content is stored.
  * The second link file will be named
- * <code>(remaining_hash)-(uncompressed_length)-(collision#)-<em>1</em>[.gz]</code>
- * </p>
- * <p>
- * The <code>.gz</code> extension is added to chunks that have been gzip
+ * <code>(remaining_hash)-(uncompressed_length)-(collision#)-<em>1</em>[.gz]</code></p>
+ *
+ * <p>The <code>.gz</code> extension is added to chunks that have been gzip
  * compressed.  Chunks smaller than <code>FILE_SYSTEM_BLOCK_SIZE</code> are
  * never compressed as the space reduction will not yield any savings.
  * For larger files, the chunk is compressed, then the compressed version is
  * only used if it is sufficiently smaller to cross a
  * <code>FILE_SYSTEM_BLOCK_SIZE</code> block boundary in size.  This avoids
  * further compression overhead when the space reduction does not yield any
- * savings.
- * </p>
- * <p>
- * The <code>.corrupt</code> extension indicates that the background verifier
+ * savings.</p>
+ *
+ * <p>The <code>.corrupt</code> extension indicates that the background verifier
  * detected this chunk to no longer match the expected MD5 sum or chunk length
  * and the chunk could not be restored from another copy (see <code>link#</code>).
  * TODO: Can we restore this from backup and recover in-place and remove .corrupted from the filename?
@@ -117,70 +107,59 @@ import java.util.logging.Logger;
  * there is no other copy of the link, then the client will be asked to re-upload
  * the chunk.  During restore, an attempt will be made to locate an alternate
  * copy of the chunk.  Once all links are migrated, this corrupt chunk will be
- * deleted as normal when link count reaches one.
- * </p>
- * <p>
- * Both <code>collision#</code> and <code>link#</code> are maintained in sequential
+ * deleted as normal when link count reaches one.</p>
+ *
+ * <p>Both <code>collision#</code> and <code>link#</code> are maintained in sequential
  * order starting at <code>0</code>.  The system renumbers files as-needed as
  * things are removed in order to maintain no gaps in the sequence.  During routine
  * operations, searches are done one-past the end to detect and correct any gaps
- * in the sequence caused by any unclean shutdowns.
- * </p>
- * <p>
- * Once <code>DUPLICATE_LINK_COUNT</code> or more links are created to a data chunk,
+ * in the sequence caused by any unclean shutdowns.</p>
+ *
+ * <p>Once <code>DUPLICATE_LINK_COUNT</code> or more links are created to a data chunk,
  * a second copy of the data is created.  Once two copies exist, links will be
  * distributed between them evenly.  Only when both of the first two copies have
- * hit <code>FILE_SYSTEM_MAX_LINK_COUNT</code> links will a third copy be created.
- * </p>
- * <p>
- * Once the number of links in the first two copies reaches <code>COALESCE_LINK_COUNT</code>,
+ * hit <code>FILE_SYSTEM_MAX_LINK_COUNT</code> links will a third copy be created.</p>
+ *
+ * <p>Once the number of links in the first two copies reaches <code>COALESCE_LINK_COUNT</code>,
  * all new links are all put into the first and the second copy will be eventually
- * be removed once no longer referenced.
- * </p>
- * <p>
- * Files are normally removed from the index immediately as they are removed from
+ * be removed once no longer referenced.</p>
+ *
+ * <p>Files are normally removed from the index immediately as they are removed from
  * the backup directory trees.  However, in the event of an unclean shutdown or
  * manual administrative action, there may be orphaned index files (with a link
  * count of 1).  A cleanup job is ran at startup as well as once per day to find
  * and delete any orphaned index files.  This cleanup job can also be
- * accomplished manually on the shell:
- * </p>
- * <pre>
- * /etc/init.d/aoserv-daemon stop
+ * accomplished manually on the shell:</p>
+ *
+ * <pre>/etc/init.d/aoserv-daemon stop
  * find (/backup-partition)/DATA-INDEX -mindepth 2 -maxdepth 2 -type f -links 1 -print # -delete
  * find (/backup-partition)/DATA-INDEX -mindepth 1 -maxdepth 1 -type d -empty -print # -delete
  * # Note: -delete commented for safety, uncomment to actually delete the orphans.
- * /etc/init.d/aoserv-daemon start
- * </pre>
- * <p>
- * The backup process recreates missing index files from existing hard linked chunks,
+ * /etc/init.d/aoserv-daemon start</pre>
+ *
+ * <p>The backup process recreates missing index files from existing hard linked chunks,
  * so the entire index may be discarded and it will be recreated with minimal loss
  * of drive space.  Some links might not be created from new data to old (if not
  * yet put back in the index), but the system will still function and eventually
- * settle to an optimal state once again as backup directories are recycled.
- * </p>
- * <p>
- * The background verifier uses the chunk's modified time to keep track of the
+ * settle to an optimal state once again as backup directories are recycled.</p>
+ *
+ * <p>The background verifier uses the chunk's modified time to keep track of the
  * last time the chunk was verified.  The chunk will be re-verified
- * approximately once every <code>VERIFICATION_INTERVAL</code> milliseconds.
- * </p>
- * <p>
- * Security: Client-provided MD5 values must never be trusted for what goes into
+ * approximately once every <code>VERIFICATION_INTERVAL</code> milliseconds.</p>
+ *
+ * <p>Security: Client-provided MD5 values must never be trusted for what goes into
  * the index.  They can be used to link to existing data within the client's
  * backup, but anything being added to the index must have server-side MD5
- * computed.
- * </p>
- * <p>
- * Locks are maintained on a per-hash-directory basis, so the I/O can be
+ * computed.</p>
+ *
+ * <p>Locks are maintained on a per-hash-directory basis, so the I/O can be
  * dispatched with up to 2^16 concurrency.  Locks are done within the JVM
  * using synchronized blocks, as well as between processes using file locking.
  * It is safe for multiple processes to use the same directory index concurrently.
  * All locks are exclusive for simplicity as concurrency is still obtained by the
- * sheer number of locks.
- * </p>
- * <p>
- * TODO: Keep track of number of in-JVM locks, only release file lock when all JVM locks released.
- * </p>
+ * sheer number of locks.</p>
+ *
+ * <p>TODO: Keep track of number of in-JVM locks, only release file lock when all JVM locks released.</p>
  *
  * @see  com.aoindustries.aoserv.daemon.client.AoservDaemonProtocol#FAILOVER_FILE_REPLICATION_CHUNK_SIZE
  *
@@ -462,9 +441,8 @@ public class DedupDataIndex {
    * at a time, so other I/O can be interleaved with this cleanup process.
    * It is possible that new orphans created during the cleanup will not be
    * cleaned-up on this pass.
-   * <p>
-   * For long-lived data indexes, it is good to run this once per day during low usage times.
-   * </p>
+   *
+   * <p>For long-lived data indexes, it is good to run this once per day during low usage times.</p>
    *
    * @param  quick  When true, performs a quick pass to clean orphaned data
    *                only, but does not verify MD5 sums.

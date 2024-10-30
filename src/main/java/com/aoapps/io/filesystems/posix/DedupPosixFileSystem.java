@@ -32,18 +32,15 @@ import org.apache.commons.lang3.NotImplementedException;
 /**
  * De-duplicates data chunks on the fly.
  *
- * <pre>
- * real name (empty file, small file, or possible full/partially restored large file)
+ * <pre>real name (empty file, small file, or possible full/partially restored large file)
  * &lt;A&lt;O&lt;DEDUP&gt;O&gt;A&gt;_# → symbolic linked to real name
- * &lt;A&lt;O&lt;DEDUP&gt;O&gt;A&gt;_#_chunk#_md5_size[.gz] → hard linked to index
- * </pre>
- * <p>
- * Renaming a file requires to rename both the file and the one symbolic link to the file.
- * </p>
- * <p>
- * Files smaller than TODO bytes in length will not be deduped.  This is because
- * the overhead of deduping is:
- * </p>
+ * &lt;A&lt;O&lt;DEDUP&gt;O&gt;A&gt;_#_chunk#_md5_size[.gz] → hard linked to index</pre>
+ *
+ * <p>Renaming a file requires to rename both the file and the one symbolic link to the file.</p>
+ *
+ * <p>Files smaller than TODO bytes in length will not be deduped.  This is because
+ * the overhead of deduping is:</p>
+ *
  * <ol>
  *   <li>TODO</li>
  * </ol>

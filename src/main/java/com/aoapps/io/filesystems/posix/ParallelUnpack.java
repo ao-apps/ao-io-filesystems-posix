@@ -1,6 +1,6 @@
 /*
  * ao-io-filesystems-posix - POSIX filesystem abstraction.
- * Copyright (C) 2009, 2010, 2011, 2013, 2015, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2009, 2010, 2011, 2013, 2015, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -46,16 +46,12 @@ import java.util.concurrent.BlockingQueue;
 import java.util.zip.GZIPInputStream;
 
 /**
- * <p>
  * Unpacks the files that have been packed by ParallelPack.
- * </p>
- * <p>
- * For efficiency, direct TCP communication is supported with the <code>-l</code> option.
- * </p>
- * <p>
- * It assumes that the file system is not changing, results of use on a changing
- * filesystem is not defined.
- * </p>
+ *
+ * <p>For efficiency, direct TCP communication is supported with the <code>-l</code> option.</p>
+ *
+ * <p>It assumes that the file system is not changing, results of use on a changing
+ * filesystem is not defined.</p>
  *
  * @see  ParallelPack
  *

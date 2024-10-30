@@ -1,6 +1,6 @@
 /*
  * ao-io-filesystems-posix - POSIX filesystem abstraction.
- * Copyright (C) 2009, 2010, 2011, 2013, 2015, 2018, 2019, 2020, 2021, 2022  AO Industries, Inc.
+ * Copyright (C) 2009, 2010, 2011, 2013, 2015, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -51,26 +51,21 @@ import java.util.concurrent.BlockingQueue;
 import java.util.zip.GZIPOutputStream;
 
 /**
- * <p>
  * Our backup directories contain parallel directories with many hard links.
  * rsync and tar both use extreme amounts of RAM to manipulate these
  * directories and often fail or become extremely slow due to excessive
  * swapping.
- * </p>
- * <p>
- * To work around this problem and be able to move directory trees from host to
+ *
+ * <p>To work around this problem and be able to move directory trees from host to
  * host, this tool will combine the set of directories and write them to
  * <code>System.out</code>.  This is similar to tar.  The output is then
  * unpacked using <code>ParallelUnpack</code>, which could be a direct pipe,
- * through <code>ssh</code>, <code>nc</code>, or any other mechanism.
- * </p>
- * <p>
- * For efficiency, direct TCP communication is supported with the <code>-h</code> option.
- * </p>
- * <p>
- * It assumes that the file system is not changing, results of use on a changing
- * filesystem is not defined.
- * </p>
+ * through <code>ssh</code>, <code>nc</code>, or any other mechanism.</p>
+ *
+ * <p>For efficiency, direct TCP communication is supported with the <code>-h</code> option.</p>
+ *
+ * <p>It assumes that the file system is not changing, results of use on a changing
+ * filesystem is not defined.</p>
  *
  * @see  ParallelUnpack
  *
