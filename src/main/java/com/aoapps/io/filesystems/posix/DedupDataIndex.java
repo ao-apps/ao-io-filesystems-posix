@@ -1,6 +1,6 @@
 /*
  * ao-io-filesystems-posix - POSIX filesystem abstraction.
- * Copyright (C) 2015, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2015, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -466,7 +466,7 @@ public class DedupDataIndex {
           PathIterator list = null;
           try {
             try (FileLock lock = hashDirLock.lock()) {
-              assert lock != null; // Java 9: fix: Avoid warning: "auto-closeable resource lock is never referenced in body of corresponding try statement"
+              assert lock != null; // Avoid warning: "auto-closeable resource lock is never referenced in body of corresponding try statement"
               list = fileSystem.list(hashDirPath);
             } catch (NoSuchFileException | NotDirectoryException e) {
               // These are OK since we're working on a live file system
@@ -479,7 +479,7 @@ public class DedupDataIndex {
                 // Skip lock files
                 if (!LOCK_FILE_NAME.equals(filename)) {
                   try (FileLock lock = hashDirLock.lock()) {
-                    assert lock != null; // Java 9: fix: Avoid warning: "auto-closeable resource lock is never referenced in body of corresponding try statement"
+                    assert lock != null; // Avoid warning: "auto-closeable resource lock is never referenced in body of corresponding try statement"
                     Stat stat = fileSystem.stat(file);
                     // Must still exist
                     if (stat.exists()) {
