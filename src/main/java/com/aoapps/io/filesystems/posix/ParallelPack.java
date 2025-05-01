@@ -1,6 +1,6 @@
 /*
  * ao-io-filesystems-posix - POSIX filesystem abstraction.
- * Copyright (C) 2009, 2010, 2011, 2013, 2015, 2018, 2019, 2020, 2021, 2022, 2024  AO Industries, Inc.
+ * Copyright (C) 2009, 2010, 2011, 2013, 2015, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -205,35 +205,35 @@ public final class ParallelPack {
           return diff;
         }
     );
-      {
-        int nextSlot = 0;
-        final Map<String, FilesystemIteratorRule> prefixRules = Collections.emptyMap();
-        for (PosixFile directory : directories) {
-          Stat stat = directory.getStat();
-          if (!stat.exists()) {
-            throw new IOException("Directory not found: " + directory.getPath());
+    {
+      int nextSlot = 0;
+      final Map<String, FilesystemIteratorRule> prefixRules = Collections.emptyMap();
+      for (PosixFile directory : directories) {
+        Stat stat = directory.getStat();
+        if (!stat.exists()) {
+          throw new IOException("Directory not found: " + directory.getPath());
+        }
+        if (!stat.isDirectory()) {
+          throw new IOException("Not a directory: " + directory.getPath());
+        }
+        String path = directory.getFile().getCanonicalPath();
+        Map<String, FilesystemIteratorRule> rules = Collections.singletonMap(path, FilesystemIteratorRule.OK);
+        FilesystemIterator iterator = new FilesystemIterator(rules, prefixRules, path, true, true);
+        File nextFile = iterator.getNextFile();
+        if (nextFile != null) {
+          String relPath = getRelativePath(nextFile, iterator);
+          List<FilesystemIteratorAndSlot> list = nextFiles.get(relPath);
+          if (list == null) {
+            list = new ArrayList<>(numDirectories);
+            nextFiles.put(relPath, list);
           }
-          if (!stat.isDirectory()) {
-            throw new IOException("Not a directory: " + directory.getPath());
-          }
-          String path = directory.getFile().getCanonicalPath();
-          Map<String, FilesystemIteratorRule> rules = Collections.singletonMap(path, FilesystemIteratorRule.OK);
-          FilesystemIterator iterator = new FilesystemIterator(rules, prefixRules, path, true, true);
-          File nextFile = iterator.getNextFile();
-          if (nextFile != null) {
-            String relPath = getRelativePath(nextFile, iterator);
-            List<FilesystemIteratorAndSlot> list = nextFiles.get(relPath);
-            if (list == null) {
-              list = new ArrayList<>(numDirectories);
-              nextFiles.put(relPath, list);
-            }
-            list.add(new FilesystemIteratorAndSlot(iterator, nextSlot++));
-            if (nextSlot > 62) {
-              nextSlot = 0;
-            }
+          list.add(new FilesystemIteratorAndSlot(iterator, nextSlot++));
+          if (nextSlot > 62) {
+            nextSlot = 0;
           }
         }
       }
+    }
 
     final BlockingQueue<String> verboseQueue;
     final boolean[] verboseThreadRun;
