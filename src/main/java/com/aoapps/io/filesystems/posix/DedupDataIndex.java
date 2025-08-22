@@ -353,7 +353,7 @@ public class DedupDataIndex {
     private final Path lockPath;
 
     private HashDirectoryLock(int hashDir) throws IOException {
-      //this.hashDir = hashDir;
+      // this.hashDir = hashDir;
       StringBuilder name = new StringBuilder(DIRECTORY_HASH_CHARACTERS);
       int shift = HEX_BITS * DIRECTORY_HASH_CHARACTERS;
       do {
