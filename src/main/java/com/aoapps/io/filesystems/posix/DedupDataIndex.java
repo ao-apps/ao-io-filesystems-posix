@@ -243,7 +243,6 @@ public class DedupDataIndex {
    */
   private static final long VERIFICATION_INTERVAL = 7L * 24L * 60L * 60L * 1000L; // 7 Days
 
-
   // <editor-fold defaultstate="collapsed" desc="Obtaining instances">
   private static class InstanceKey {
 
