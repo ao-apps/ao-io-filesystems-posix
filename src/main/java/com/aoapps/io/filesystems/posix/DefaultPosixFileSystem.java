@@ -72,7 +72,7 @@ public class DefaultPosixFileSystem extends JavaFileSystem implements PosixFileS
   /**
    * Gets a PosixFile for the given path.
    *
-   * @see #getFile(com.aoapps.io.filesystems.Path)
+   * @see DefaultPosixFileSystem#getFile(com.aoapps.io.filesystems.Path)
    */
   private PosixFile getPosixFile(Path path) throws IOException {
     assert path.getFileSystem() == this;

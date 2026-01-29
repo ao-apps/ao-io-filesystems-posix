@@ -81,7 +81,7 @@ public class RandomFailPosixFileSystem extends RandomFailFileSystem implements P
   /**
    * Uses default probabilities and a default fast pseudo-random number generator for non-cryptographic purposes.
    *
-   * @see #defaultFastRandom
+   * @see RandomFailPosixFileSystem#defaultFastRandom
    */
   public RandomFailPosixFileSystem(PosixFileSystem wrappedFileSystem) {
     this(
