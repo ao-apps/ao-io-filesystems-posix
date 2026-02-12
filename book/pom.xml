@@ -29,12 +29,12 @@ along with ao-io-filesystems-posix.  If not, see <https://www.gnu.org/licenses/>
     <relativePath>../../parent/pom.xml</relativePath>
   </parent>
 
-  <groupId>com.aoapps</groupId><artifactId>ao-io-filesystems-posix-book</artifactId><version>0.3.0-SNAPSHOT</version>
+  <groupId>com.aoapps</groupId><artifactId>ao-io-filesystems-posix-book</artifactId><version>0.3.0</version>
   <packaging>jar</packaging>
 
   <properties>
     <!-- Must be set to ${git.commit.time} for snapshots or ISO 8601 timestamp for releases. -->
-    <project.build.outputTimestamp>${git.commit.time}</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2026-02-12T02:15:00Z</project.build.outputTimestamp>
     <module.name>com.aoapps.io.filesystems.posix.book</module.name>
     <subproject.subpath>book/</subproject.subpath>
     <!-- Java 17 -->
@@ -84,7 +84,7 @@ along with ao-io-filesystems-posix.  If not, see <https://www.gnu.org/licenses/>
     <connection>scm:git:git://github.com/ao-apps/ao-io-filesystems-posix.git</connection>
     <developerConnection>scm:git:git@github.com:ao-apps/ao-io-filesystems-posix.git</developerConnection>
     <url>https://github.com/ao-apps/ao-io-filesystems-posix</url>
-    <tag>HEAD</tag>
+    <tag>ao-io-filesystems-posix-book-0.3.0</tag>
   </scm>
 
   <issueManagement>
