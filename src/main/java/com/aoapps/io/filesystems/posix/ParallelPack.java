@@ -1,6 +1,6 @@
 /*
  * ao-io-filesystems-posix - POSIX filesystem abstraction.
- * Copyright (C) 2009, 2010, 2011, 2013, 2015, 2018, 2019, 2020, 2021, 2022, 2024, 2025  AO Industries, Inc.
+ * Copyright (C) 2009, 2010, 2011, 2013, 2015, 2018, 2019, 2020, 2021, 2022, 2024, 2025, 2026  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -244,7 +244,7 @@ public final class ParallelPack {
       verboseThread = null;
     } else {
       verboseQueue = new ArrayBlockingQueue<>(VERBOSE_QUEUE_SIZE);
-      verboseThreadRun = new boolean[]{true};
+      verboseThreadRun = new boolean[] {true};
       verboseThread = new Thread("ParallelPack - Verbose Thread") {
         @Override
         public void run() {
